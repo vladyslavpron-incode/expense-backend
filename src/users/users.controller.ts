@@ -7,6 +7,7 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOperation } from '@nestjs/swagger';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuthUser } from 'src/auth/decorators/user.decorator';
 import { AccessAuthGuard } from 'src/auth/guards/access-auth.guard';
@@ -21,6 +22,7 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get('all')
+  @ApiOperation({ summary: 'Get all users' })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
   getUsers(): Promise<User[]> {
@@ -28,11 +30,13 @@ export class UsersController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get current user' })
   getCurrentUser(@AuthUser() user: User): User {
     return user;
   }
 
   @Get(':userId')
+  @ApiOperation({ summary: 'Get user by id' })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
   getUser(@Param('userId') userId: number): Promise<User | null> {
@@ -46,6 +50,7 @@ export class UsersController {
   // }
 
   @Patch()
+  @ApiOperation({ summary: 'Update current user' })
   updateCurrentUser(
     @AuthUser() user: User,
     @Body() updateUserDto: UpdateUserDto,
@@ -54,6 +59,7 @@ export class UsersController {
   }
 
   @Patch(':userId')
+  @ApiOperation({ summary: 'Update user by id' })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
   updateUser(
@@ -64,11 +70,13 @@ export class UsersController {
   }
 
   @Delete()
+  @ApiOperation({ summary: 'Delete current user' })
   deleteCurrentUser(@AuthUser() user: User): Promise<null> {
     return this.usersService.deleteUserById(user.id);
   }
 
   @Delete(':userId')
+  @ApiOperation({ summary: 'Delete user by id' })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
   deleteUser(@Param('userId') userId: number): Promise<null> {

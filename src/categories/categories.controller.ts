@@ -15,6 +15,7 @@ import { AuthUser } from 'src/auth/decorators/user.decorator';
 import { User, UserRoles } from 'src/users/user.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { ApiOperation } from '@nestjs/swagger';
 
 @Controller('categories')
 @UseGuards(AccessAuthGuard)
@@ -22,11 +23,13 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
+  @ApiOperation({ summary: 'Get categories of current user' })
   getCurrentUserCategories(@AuthUser() user: User): Promise<Category[]> {
     return this.categoriesService.getUserCategories(user);
   }
 
   @Get(':categoryId')
+  @ApiOperation({ summary: 'Get category by id' })
   getCategory(
     @AuthUser() user: User,
     @Param('categoryId') categoryId: number,
@@ -40,6 +43,7 @@ export class CategoriesController {
 
   // TODO: allow admins to create categories for other users
   @Post()
+  @ApiOperation({ summary: 'Create new category for current user' })
   createCurrentUserCategory(
     @AuthUser() user: User,
     @Body() createCategoryDto: CreateCategoryDto,
@@ -48,6 +52,7 @@ export class CategoriesController {
   }
 
   @Patch(':categoryId')
+  @ApiOperation({ summary: 'Update category by id' })
   updateCategory(
     @AuthUser() user: User,
     @Param('categoryId') categoryId: number,
@@ -68,6 +73,7 @@ export class CategoriesController {
   }
 
   @Delete(':categoryId')
+  @ApiOperation({ summary: 'Delete category by id' })
   deleteCategory(
     @AuthUser() user: User,
     @Param('categoryId') categoryId: number,
