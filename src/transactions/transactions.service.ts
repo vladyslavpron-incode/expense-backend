@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoriesService } from 'src/categories/categories.service';
 import type { User } from 'src/users/user.entity';
-import type { Repository } from 'typeorm';
+import type { FindOptionsRelations, Repository } from 'typeorm';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Transaction } from './transaction.entity';
@@ -31,9 +31,13 @@ export class TransactionsService {
     });
   }
 
-  async getTransactionById(id: number): Promise<Transaction | null> {
+  async getTransactionById(
+    id: number,
+    relations?: FindOptionsRelations<Transaction>,
+  ): Promise<Transaction | null> {
     return this.transactionsRepository.findOne({
       where: { id },
+      relations,
     });
   }
 
@@ -75,12 +79,26 @@ export class TransactionsService {
   ): Promise<Transaction> {
     const transaction = user
       ? await this.getUserTransactionById(user, id)
-      : await this.getTransactionById(id);
+      : await this.getTransactionById(id, { user: true });
 
     if (!transaction) {
       throw new BadRequestException(
         'Transaction you want to update does not exists',
       );
+    }
+
+    if (updateTransactionDto.categoryLabel) {
+      const category = await this.categoriesService.getUserCategoryByLabel(
+        transaction.user,
+        updateTransactionDto.categoryLabel,
+      );
+
+      if (!category) {
+        throw new BadRequestException(
+          'Category you want to move transaction to does not exists',
+        );
+      }
+      transaction.category = category;
     }
 
     return this.transactionsRepository.save({

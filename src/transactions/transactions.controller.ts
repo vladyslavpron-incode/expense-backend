@@ -14,6 +14,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuthUser } from 'src/auth/decorators/user.decorator';
 import { AccessAuthGuard } from 'src/auth/guards/access-auth.guard';
@@ -52,7 +53,7 @@ export class TransactionsController {
     @AuthUser() user: User,
     @Param('transactionId') transactionId: number,
   ): Promise<Transaction | null> {
-    if (user.role) {
+    if (user.role === UserRoles.ADMIN) {
       return this.transactionsService.getTransactionById(transactionId);
     } else {
       return this.transactionsService.getUserTransactionById(
@@ -80,23 +81,25 @@ export class TransactionsController {
 
   @Patch(':transactionId')
   @ApiOperation({ summary: 'Update transaction by id' })
-  updateTransaction(
+  async updateTransaction(
     @AuthUser() user: User,
     @Param('transactionId') transactionId: number,
     @Body() updateTransactionDto: UpdateTransactionDto,
   ): Promise<Transaction> {
-    if (user.role === UserRoles.ADMIN) {
-      return this.transactionsService.updateTransaction(
-        transactionId,
-        updateTransactionDto,
-      );
-    } else {
-      return this.transactionsService.updateTransaction(
-        transactionId,
-        updateTransactionDto,
-        user,
-      );
-    }
+    // transaction only moveable to categories of the same user
+    const result =
+      user.role === UserRoles.ADMIN
+        ? await this.transactionsService.updateTransaction(
+            transactionId,
+            updateTransactionDto,
+          )
+        : await this.transactionsService.updateTransaction(
+            transactionId,
+            updateTransactionDto,
+            user,
+          );
+
+    return plainToInstance(Transaction, result);
   }
 
   @Delete(':transactionId')
