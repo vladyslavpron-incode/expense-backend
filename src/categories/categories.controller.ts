@@ -8,16 +8,24 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import type { Category } from './category.entity';
+import { Category } from './category.entity';
 import { CategoriesService } from './categories.service';
 import { AccessAuthGuard } from 'src/auth/guards/access-auth.guard';
 import { AuthUser } from 'src/auth/decorators/user.decorator';
 import { User, UserRoles } from 'src/users/user.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('categories')
+@ApiTags('Categories')
+@ApiBearerAuth()
 @UseGuards(AccessAuthGuard)
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
@@ -30,6 +38,7 @@ export class CategoriesController {
 
   @Get(':categoryId')
   @ApiOperation({ summary: 'Get category by id' })
+  @ApiOkResponse({ type: Category })
   getCategory(
     @AuthUser() user: User,
     @Param('categoryId') categoryId: number,
@@ -53,23 +62,25 @@ export class CategoriesController {
 
   @Patch(':categoryId')
   @ApiOperation({ summary: 'Update category by id' })
-  updateCategory(
+  async updateCategory(
     @AuthUser() user: User,
     @Param('categoryId') categoryId: number,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ): Promise<Category> {
+    let result: Category;
     if (user.role === UserRoles.ADMIN) {
-      return this.categoriesService.updateCategory(
+      result = await this.categoriesService.updateCategory(
         categoryId,
         updateCategoryDto,
       );
     } else {
-      return this.categoriesService.updateCategory(
+      result = await this.categoriesService.updateCategory(
         categoryId,
         updateCategoryDto,
         user,
       );
     }
+    return plainToInstance(Category, result);
   }
 
   @Delete(':categoryId')

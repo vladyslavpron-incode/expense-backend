@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 // import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { User } from './users/user.entity';
 import { UsersModule } from './users/users.module';
@@ -30,7 +29,7 @@ import { Category } from './categories/category.entity';
     CategoriesModule,
     TransactionsModule,
   ],
-  controllers: [AppController],
+  controllers: [],
   providers: [AppService],
 })
 export class AppModule {}

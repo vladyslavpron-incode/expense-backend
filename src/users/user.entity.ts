@@ -1,3 +1,5 @@
+import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
+import { Exclude } from 'class-transformer';
 import { Category } from 'src/categories/category.entity';
 import { Transaction } from 'src/transactions/transaction.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
@@ -12,6 +14,7 @@ export class User {
   @PrimaryGeneratedColumn()
   id!: number;
 
+  @ApiProperty()
   @Column({ unique: true })
   username!: string;
 
@@ -25,17 +28,23 @@ export class User {
   })
   role!: UserRoles;
 
+  @ApiHideProperty()
+  @Exclude()
   @Column({ length: '100' })
   password!: string;
 
+  @ApiHideProperty()
+  @Exclude()
   @Column({ nullable: true })
   refreshToken!: string;
 
+  @ApiHideProperty()
   @OneToMany(() => Category, (category) => category.user, {
     cascade: true,
   })
   categories!: Category[];
 
+  @ApiHideProperty()
   @OneToMany(() => Transaction, (transaction) => transaction.user)
   transactions!: Transaction[];
 }

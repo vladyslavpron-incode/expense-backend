@@ -7,7 +7,13 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuthUser } from 'src/auth/decorators/user.decorator';
 import { AccessAuthGuard } from 'src/auth/guards/access-auth.guard';
@@ -17,12 +23,16 @@ import { User, UserRoles } from './user.entity';
 import { UsersService } from './users.service';
 
 @Controller('users')
+@ApiTags('Users')
+@ApiBearerAuth()
 @UseGuards(AccessAuthGuard)
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get('all')
-  @ApiOperation({ summary: 'Get all users' })
+  @ApiOperation({
+    summary: 'Get all users (for Administrators)',
+  })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
   getUsers(): Promise<User[]> {
@@ -36,7 +46,10 @@ export class UsersController {
   }
 
   @Get(':userId')
-  @ApiOperation({ summary: 'Get user by id' })
+  @ApiOperation({
+    summary: 'Get user by id (for Administrators)',
+  })
+  @ApiOkResponse({ type: User })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
   getUser(@Param('userId') userId: number): Promise<User | null> {
@@ -51,22 +64,24 @@ export class UsersController {
 
   @Patch()
   @ApiOperation({ summary: 'Update current user' })
-  updateCurrentUser(
+  async updateCurrentUser(
     @AuthUser() user: User,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<User> {
-    return this.usersService.updateUser(user.id, updateUserDto);
+    const result = await this.usersService.updateUser(user.id, updateUserDto);
+    return plainToInstance(User, result);
   }
 
   @Patch(':userId')
-  @ApiOperation({ summary: 'Update user by id' })
+  @ApiOperation({ summary: 'Update user by id (for Administrators)' })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
-  updateUser(
+  async updateUser(
     @Param('userId') userId: number,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<User> {
-    return this.usersService.updateUser(userId, updateUserDto);
+    const result = this.usersService.updateUser(userId, updateUserDto);
+    return plainToInstance(User, result);
   }
 
   @Delete()
@@ -76,7 +91,7 @@ export class UsersController {
   }
 
   @Delete(':userId')
-  @ApiOperation({ summary: 'Delete user by id' })
+  @ApiOperation({ summary: 'Delete user by id (for Administrators)' })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
   deleteUser(@Param('userId') userId: number): Promise<null> {

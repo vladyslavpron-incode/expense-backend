@@ -8,7 +8,12 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuthUser } from 'src/auth/decorators/user.decorator';
 import { AccessAuthGuard } from 'src/auth/guards/access-auth.guard';
@@ -16,10 +21,12 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { User, UserRoles } from 'src/users/user.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
-import type { Transaction } from './transaction.entity';
+import { Transaction } from './transaction.entity';
 import { TransactionsService } from './transactions.service';
 
 @Controller('transactions')
+@ApiTags('Transactions')
+@ApiBearerAuth()
 @UseGuards(AccessAuthGuard)
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
@@ -40,6 +47,7 @@ export class TransactionsController {
 
   @Get(':transactionId')
   @ApiOperation({ summary: 'Get transaction by id' })
+  @ApiOkResponse({ type: Transaction })
   getTransaction(
     @AuthUser() user: User,
     @Param('transactionId') transactionId: number,

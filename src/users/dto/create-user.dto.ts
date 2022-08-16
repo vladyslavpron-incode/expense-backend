@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, Length } from 'class-validator';
 import { UserRoles } from '../user.entity';
 
@@ -15,6 +16,12 @@ export class CreateUserDto {
   readonly displayName!: string;
 
   @IsOptional()
+  @ApiPropertyOptional({
+    enum: UserRoles,
+    default: UserRoles.USER,
+    description: 'User role',
+    required: false,
+  })
   @IsEnum(UserRoles, {
     message: `Role must be one of: ${Object.values(UserRoles).join(', ')}`,
   })
