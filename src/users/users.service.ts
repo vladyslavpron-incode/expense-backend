@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoriesService } from 'src/categories/categories.service';
 import type { Repository } from 'typeorm';
-import { User } from './user.entity';
+import { User, UserRoles } from './user.entity';
 import bcrypt from 'bcrypt';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
@@ -54,11 +54,25 @@ export class UsersService {
     return user;
   }
 
-  async updateUser(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+  async updateUser(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    questioner?: User,
+  ): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { id } });
 
     if (!user) {
       throw new BadRequestException('User you want to update does not exists');
+    }
+
+    if (questioner && id !== questioner?.id && user?.role === UserRoles.ADMIN) {
+      throw new BadRequestException(
+        ' You are not allowed to update another Administrator',
+      );
+    }
+
+    if (updateUserDto.role && user.role !== UserRoles.ADMIN) {
+      throw new BadRequestException(' You are not allowed to change your role');
     }
 
     const hashedPassword = updateUserDto.password
@@ -85,13 +99,31 @@ export class UsersService {
     return null;
   }
 
-  async deleteUserById(id: number): Promise<null> {
-    const result = await this.usersRepository.delete({ id });
+  async deleteUserById(id: number, questioner?: User): Promise<null> {
+    if (!questioner) {
+      const result = await this.usersRepository.delete({ id });
 
-    if (!result.affected) {
-      throw new BadRequestException('User you want to delete does not exists');
+      if (!result.affected) {
+        throw new BadRequestException(
+          'User you want to delete does not exists',
+        );
+      }
+
+      return null;
+    } else {
+      const user = await this.getUserById(id);
+
+      if (!user) {
+        throw new BadRequestException(
+          'User you want to delete does not exists',
+        );
+      }
+
+      if (user.id !== questioner.id && user.role === UserRoles.ADMIN) {
+        throw new BadRequestException("You can't delete another Administrator");
+      }
+      await this.usersRepository.delete({ id });
+      return null;
     }
-
-    return null;
   }
 }

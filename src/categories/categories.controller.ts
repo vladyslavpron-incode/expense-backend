@@ -72,6 +72,8 @@ export class CategoriesController {
       result = await this.categoriesService.updateCategory(
         categoryId,
         updateCategoryDto,
+        undefined,
+        user,
       );
     } else {
       result = await this.categoriesService.updateCategory(
@@ -90,7 +92,11 @@ export class CategoriesController {
     @Param('categoryId') categoryId: number,
   ): Promise<null> {
     if (user.role === UserRoles.ADMIN) {
-      return this.categoriesService.deleteCategoryById(categoryId);
+      return this.categoriesService.deleteCategoryById(
+        categoryId,
+        undefined,
+        user,
+      );
     } else {
       return this.categoriesService.deleteCategoryById(categoryId, user);
     }

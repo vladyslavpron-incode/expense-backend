@@ -27,6 +27,6 @@ export class Transaction {
 
   @ApiHideProperty()
   @Exclude()
-  @ManyToOne(() => User, (user) => user.transactions)
+  @ManyToOne(() => User, (user) => user.transactions, { onDelete: 'CASCADE' })
   user!: User;
 }
