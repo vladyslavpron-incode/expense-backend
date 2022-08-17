@@ -7,9 +7,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserRoles } from 'src/users/user.entity';
 import type { Repository } from 'typeorm';
 import { Category } from './category.entity';
-import { defaultCategories } from './default.categories';
+import { defaultCategories, setDefaultCategories } from './default.categories';
 import type { CreateCategoryDto } from './dto/create-category.dto';
 import type { UpdateCategoryDto } from './dto/update-category.dto';
+import type { UpdateDefaultCategoriesDto } from './dto/update-default-categories';
 
 @Injectable()
 export class CategoriesService {
@@ -86,9 +87,10 @@ export class CategoriesService {
   }
 
   async createDefaultCategories(user: User): Promise<Category[]> {
-    const categories = this.categoriesRepository.create(
-      defaultCategories.map((category) => ({ label: category, user })),
-    );
+    const categories = this.categoriesRepository.create([
+      ...defaultCategories.map((category) => ({ label: category, user })),
+      { label: 'Other', user },
+    ]);
 
     return this.categoriesRepository.save(categories);
   }
@@ -183,5 +185,17 @@ export class CategoriesService {
     }
 
     return null;
+  }
+
+  getDefaultCategories(): string[] {
+    return defaultCategories;
+  }
+
+  updateDefaultcategories({
+    categories,
+  }: UpdateDefaultCategoriesDto): string[] {
+    return setDefaultCategories(
+      categories.filter((category) => category !== 'Other'),
+    );
   }
 }
