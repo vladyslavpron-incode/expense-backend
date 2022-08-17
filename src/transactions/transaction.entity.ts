@@ -13,7 +13,7 @@ export class Transaction {
   @Column({ type: 'date' })
   date!: Date;
 
-  @Column()
+  @Column({ type: 'real' })
   amount!: number;
 
   @ManyToOne(() => Category, (category) => category.transactions, {
