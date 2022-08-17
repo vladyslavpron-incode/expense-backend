@@ -26,7 +26,7 @@ export class AccessStrategy extends PassportStrategy(Strategy, 'access') {
     const user = await this.usersService.getUserById(payload.id);
 
     if (!user) {
-      throw new UnauthorizedException('Your refresh token is invalid');
+      throw new UnauthorizedException('Your access token is invalid');
     }
 
     return user;
