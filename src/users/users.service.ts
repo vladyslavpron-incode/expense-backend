@@ -21,13 +21,12 @@ export class UsersService {
   ) {}
 
   async getAllUsers(): Promise<User[]> {
-    return this.usersRepository.find({ relations: ['categories'] });
+    return this.usersRepository.find();
   }
 
   async getUserById(id: number): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { id },
-      relations: { categories: true },
     });
   }
 
@@ -48,12 +47,11 @@ export class UsersService {
       user,
     );
 
-    user.categories = categories;
-
     const hashedPassword = await bcrypt.hash(createUserDto.password, 5);
     user.password = hashedPassword;
 
-    return await this.usersRepository.save(user);
+    await this.usersRepository.save({ ...user, categories });
+    return user;
   }
 
   async updateUser(id: number, updateUserDto: UpdateUserDto): Promise<User> {
@@ -67,7 +65,7 @@ export class UsersService {
       ? await bcrypt.hash(updateUserDto.password, 5)
       : undefined;
 
-    return this.usersRepository.save({
+    return await this.usersRepository.save({
       ...user,
       ...updateUserDto,
       password: hashedPassword || user.password,

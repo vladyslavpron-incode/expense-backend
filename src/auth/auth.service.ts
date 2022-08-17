@@ -15,6 +15,8 @@ import {
 import bcrypt from 'bcrypt';
 import type { CreateUserDto } from 'src/users/dto/create-user.dto';
 import type { LoginUserDto } from 'src/users/dto/login-user.dto';
+import type { RegisterResponseDto } from './dto/register-response.dto';
+import type { LoginResponseDto } from './dto/login-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -23,10 +25,7 @@ export class AuthService {
     private readonly usersService: UsersService,
   ) {}
 
-  async register(createUserDto: CreateUserDto): Promise<{
-    user: User;
-    tokens: { accessToken: string; refreshToken: string };
-  }> {
+  async register(createUserDto: CreateUserDto): Promise<RegisterResponseDto> {
     const savedUser = await this.usersService.getUserByUsername(
       createUserDto.username,
     );
@@ -51,10 +50,7 @@ export class AuthService {
     };
   }
 
-  async login(candidate: LoginUserDto): Promise<{
-    user: User;
-    tokens: { accessToken: string; refreshToken: string };
-  }> {
+  async login(candidate: LoginUserDto): Promise<LoginResponseDto> {
     const user = await this.usersService.getUserByUsername(candidate.username);
 
     if (!user) {

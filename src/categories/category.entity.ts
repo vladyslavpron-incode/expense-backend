@@ -1,3 +1,5 @@
+import { ApiHideProperty } from '@nestjs/swagger';
+import { Exclude } from 'class-transformer';
 import { Transaction } from 'src/transactions/transaction.entity';
 import { User } from 'src/users/user.entity';
 import {
@@ -17,6 +19,8 @@ export class Category {
   @Column()
   label!: string;
 
+  @ApiHideProperty()
+  @Exclude()
   @ManyToOne(() => User, (user) => user.categories, { onDelete: 'CASCADE' })
   user!: User;
 
