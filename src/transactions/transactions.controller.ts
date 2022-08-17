@@ -33,7 +33,7 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Get('all')
-  @ApiOperation({ summary: 'Get all transactions' })
+  @ApiOperation({ summary: 'Get all transactions (for Administrators)' })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
   getAllTransactions(): Promise<Transaction[]> {
