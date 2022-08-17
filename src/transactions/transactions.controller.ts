@@ -92,6 +92,8 @@ export class TransactionsController {
         ? await this.transactionsService.updateTransaction(
             transactionId,
             updateTransactionDto,
+            undefined,
+            user,
           )
         : await this.transactionsService.updateTransaction(
             transactionId,
@@ -105,8 +107,9 @@ export class TransactionsController {
   @Delete(':transactionId')
   @ApiOperation({ summary: 'Delete transaction by id' })
   deleteTransaction(
+    @AuthUser() user: User,
     @Param('transactionId') transactionId: number,
   ): Promise<null> {
-    return this.transactionsService.deleteTransactionById(transactionId);
+    return this.transactionsService.deleteTransactionById(transactionId, user);
   }
 }

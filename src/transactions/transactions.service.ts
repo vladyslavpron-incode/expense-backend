@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoriesService } from 'src/categories/categories.service';
-import type { User } from 'src/users/user.entity';
+import { User, UserRoles } from 'src/users/user.entity';
 import type { FindOptionsRelations, Repository } from 'typeorm';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
@@ -76,6 +76,7 @@ export class TransactionsService {
     id: number,
     updateTransactionDto: UpdateTransactionDto,
     user?: User,
+    questioner?: User,
   ): Promise<Transaction> {
     const transaction = user
       ? await this.getUserTransactionById(user, id)
@@ -86,7 +87,15 @@ export class TransactionsService {
         'Transaction you want to update does not exists',
       );
     }
-
+    if (
+      questioner &&
+      questioner.id !== transaction.user.id &&
+      transaction.user.role === UserRoles.ADMIN
+    ) {
+      throw new BadRequestException(
+        "You can't update transactions of another Administrator",
+      );
+    }
     if (updateTransactionDto.categoryLabel) {
       const category = await this.categoriesService.getUserCategoryByLabel(
         transaction.user,
@@ -107,13 +116,34 @@ export class TransactionsService {
     });
   }
 
-  async deleteTransactionById(id: number): Promise<null> {
-    const result = await this.transactionsRepository.delete({ id });
+  async deleteTransactionById(id: number, questioner?: User): Promise<null> {
+    if (!questioner) {
+      const result = await this.transactionsRepository.delete({ id });
 
-    if (!result.affected) {
-      throw new BadRequestException('User you want to delete does not exists');
+      if (!result.affected) {
+        throw new BadRequestException(
+          'Transaction you want to delete does not exists',
+        );
+      }
+
+      return null;
+    } else {
+      const transaction = await this.getTransactionById(id, { user: true });
+      if (!transaction) {
+        throw new BadRequestException(
+          'Transaction you want to delete does not exists',
+        );
+      }
+      if (
+        questioner.id !== transaction.user.id &&
+        transaction.user.role === UserRoles.ADMIN
+      ) {
+        throw new BadRequestException(
+          'You are not allowed to delete transaction of another Administrator',
+        );
+      }
+      await this.transactionsRepository.delete({ id });
+      return null;
     }
-
-    return null;
   }
 }

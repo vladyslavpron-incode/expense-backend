@@ -4,7 +4,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { User } from 'src/users/user.entity';
+import { User, UserRoles } from 'src/users/user.entity';
 import type { Repository } from 'typeorm';
 import { Category } from './category.entity';
 import { defaultCategories } from './default.categories';
@@ -97,6 +97,7 @@ export class CategoriesService {
     id: number,
     updateCategoryDto: UpdateCategoryDto,
     user?: User,
+    questioner?: User,
   ): Promise<Category> {
     const category = user
       ? await this.getUserCategoryById(user, id)
@@ -105,6 +106,16 @@ export class CategoriesService {
     if (!category) {
       throw new BadRequestException(
         'Category you want to update does not exists',
+      );
+    }
+
+    if (
+      questioner &&
+      questioner?.id !== category.user.id &&
+      category.user.role === UserRoles.ADMIN
+    ) {
+      throw new BadRequestException(
+        "You are not allowed to update other Administrator's category",
       );
     }
 
@@ -120,7 +131,11 @@ export class CategoriesService {
     });
   }
 
-  async deleteCategoryById(id: number, user?: User): Promise<null> {
+  async deleteCategoryById(
+    id: number,
+    user?: User,
+    questioner?: User,
+  ): Promise<null> {
     const category = user
       ? await this.getUserCategoryById(user, id)
       : await this.getCategoryById(id);
@@ -128,6 +143,16 @@ export class CategoriesService {
     if (!category) {
       throw new BadRequestException(
         'Category you want to delete does not exists',
+      );
+    }
+
+    if (
+      questioner &&
+      questioner.id !== category.user.id &&
+      category.user.role === UserRoles.ADMIN
+    ) {
+      throw new BadRequestException(
+        'You are not allowed to delete category of another Administrator ',
       );
     }
 

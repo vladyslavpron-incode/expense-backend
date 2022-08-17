@@ -77,10 +77,11 @@ export class UsersController {
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
   async updateUser(
+    @AuthUser() user: User,
     @Param('userId') userId: number,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<User> {
-    const result = this.usersService.updateUser(userId, updateUserDto);
+    const result = this.usersService.updateUser(userId, updateUserDto, user);
     return plainToInstance(User, result);
   }
 
@@ -94,7 +95,10 @@ export class UsersController {
   @ApiOperation({ summary: 'Delete user by id (for Administrators)' })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
-  deleteUser(@Param('userId') userId: number): Promise<null> {
-    return this.usersService.deleteUserById(userId);
+  deleteUser(
+    @AuthUser() user: User,
+    @Param('userId') userId: number,
+  ): Promise<null> {
+    return this.usersService.deleteUserById(userId, user);
   }
 }
