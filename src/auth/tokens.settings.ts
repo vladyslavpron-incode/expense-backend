@@ -20,13 +20,13 @@ export const refreshTokenCookieOptios = {
   httpOnly: true,
 };
 
-export interface refreshTokenPayload {
+export interface RefreshTokenPayload {
   id: number;
   username: string;
   role: UserRoles;
 }
 
-export interface accessTokenPayload {
+export interface AccessTokenPayload {
   id: number;
   username: string;
   role: UserRoles;

@@ -1,8 +1,9 @@
 import {
-  BadRequestException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoriesService } from 'src/categories/categories.service';
@@ -58,7 +59,7 @@ export class TransactionsService {
     );
 
     if (!category) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         'Category you want to create transaction for does not exists',
       );
     }
@@ -83,7 +84,7 @@ export class TransactionsService {
       : await this.getTransactionById(id, { user: true });
 
     if (!transaction) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         'Transaction you want to update does not exists',
       );
     }
@@ -92,7 +93,7 @@ export class TransactionsService {
       questioner.id !== transaction.user.id &&
       transaction.user.role === UserRoles.ADMIN
     ) {
-      throw new BadRequestException(
+      throw new ForbiddenException(
         "You can't update transactions of another Administrator",
       );
     }
@@ -103,7 +104,7 @@ export class TransactionsService {
       );
 
       if (!category) {
-        throw new BadRequestException(
+        throw new NotFoundException(
           'Category you want to move transaction to does not exists',
         );
       }
@@ -121,7 +122,7 @@ export class TransactionsService {
       const result = await this.transactionsRepository.delete({ id });
 
       if (!result.affected) {
-        throw new BadRequestException(
+        throw new NotFoundException(
           'Transaction you want to delete does not exists',
         );
       }
@@ -130,7 +131,7 @@ export class TransactionsService {
     } else {
       const transaction = await this.getTransactionById(id, { user: true });
       if (!transaction) {
-        throw new BadRequestException(
+        throw new NotFoundException(
           'Transaction you want to delete does not exists',
         );
       }
@@ -138,7 +139,7 @@ export class TransactionsService {
         questioner.id !== transaction.user.id &&
         transaction.user.role === UserRoles.ADMIN
       ) {
-        throw new BadRequestException(
+        throw new ForbiddenException(
           'You are not allowed to delete transaction of another Administrator',
         );
       }

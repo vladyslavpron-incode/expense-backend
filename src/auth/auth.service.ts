@@ -8,9 +8,9 @@ import type { User } from 'src/users/user.entity';
 import { UsersService } from 'src/users/users.service';
 import {
   accessTokenOptions,
-  accessTokenPayload,
+  AccessTokenPayload,
   refreshTokenOptions,
-  refreshTokenPayload,
+  RefreshTokenPayload,
 } from './tokens.settings';
 import bcrypt from 'bcrypt';
 import type { CreateUserDto } from 'src/users/dto/create-user.dto';
@@ -79,7 +79,6 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string): Promise<string> {
-    // const
     const payload = this.validateRefreshToken(refreshToken);
     const savedUser = await this.usersService.getUserByRefreshToken(
       refreshToken,
@@ -102,18 +101,24 @@ export class AuthService {
     return null;
   }
 
-  validateAccessToken(accessToken: string): accessTokenPayload | null {
+  validateAccessToken(accessToken: string): AccessTokenPayload | null {
     try {
-      const payload = this.jwtService.verify(accessToken, accessTokenOptions);
+      const payload: AccessTokenPayload = this.jwtService.verify(
+        accessToken,
+        accessTokenOptions,
+      );
       return payload;
     } catch (e) {
       return null;
     }
   }
 
-  validateRefreshToken(refreshToken: string): refreshTokenPayload | null {
+  validateRefreshToken(refreshToken: string): RefreshTokenPayload | null {
     try {
-      const payload = this.jwtService.verify(refreshToken, refreshTokenOptions);
+      const payload: RefreshTokenPayload = this.jwtService.verify(
+        refreshToken,
+        refreshTokenOptions,
+      );
       return payload;
     } catch (e) {
       return null;
@@ -121,7 +126,7 @@ export class AuthService {
   }
 
   generateAccessToken(user: User): string {
-    const payload: accessTokenPayload = {
+    const payload: AccessTokenPayload = {
       id: user.id,
       username: user.username,
       role: user.role,
@@ -131,7 +136,7 @@ export class AuthService {
   }
 
   generateRefreshToken(user: User): string {
-    const payload: refreshTokenPayload = {
+    const payload: RefreshTokenPayload = {
       id: user.id,
       username: user.username,
       role: user.role,

@@ -115,6 +115,6 @@ export class CategoriesController {
     @Body()
     dto: UpdateDefaultCategoriesDto,
   ): { categories: string[] } {
-    return { categories: this.categoriesService.updateDefaultcategories(dto) };
+    return { categories: this.categoriesService.updateDefaultCategories(dto) };
   }
 }

@@ -1,7 +1,7 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { accessTokenOptions, accessTokenPayload } from '../tokens.settings';
+import { accessTokenOptions, AccessTokenPayload } from '../tokens.settings';
 
 import { UsersService } from 'src/users/users.service';
 import type { User } from 'src/users/user.entity';
@@ -16,7 +16,7 @@ export class AccessStrategy extends PassportStrategy(Strategy, 'access') {
     });
   }
 
-  async validate(payload: accessTokenPayload): Promise<User> {
+  async validate(payload: AccessTokenPayload): Promise<User> {
     if (!payload) {
       throw new UnauthorizedException(
         'Your access token is invalid or has expired',
