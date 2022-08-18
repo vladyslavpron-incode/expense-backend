@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   forwardRef,
   Inject,
   Injectable,
@@ -73,6 +74,16 @@ export class UsersService {
 
     if (updateUserDto.role && user.role !== UserRoles.ADMIN) {
       throw new BadRequestException(' You are not allowed to change your role');
+    }
+
+    if (updateUserDto.username && updateUserDto.username !== user.username) {
+      const userWithSameUsername = await this.getUserByUsername(
+        updateUserDto.username,
+      );
+      if (userWithSameUsername)
+        throw new ConflictException(
+          'Another user with same username already exists, please choose another username',
+        );
     }
 
     const hashedPassword = updateUserDto.password

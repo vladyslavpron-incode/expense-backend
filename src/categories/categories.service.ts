@@ -125,6 +125,18 @@ export class CategoriesService {
       );
     }
 
+    if (updateCategoryDto.label && updateCategoryDto.label !== category.label) {
+      const categoryWithSameLabel = await this.getUserCategoryByLabel(
+        category.user,
+        updateCategoryDto.label,
+      );
+      if (categoryWithSameLabel) {
+        throw new ConflictException(
+          'You already have category with this label, please choose another label',
+        );
+      }
+    }
+
     return this.categoriesRepository.save({
       ...category,
       ...updateCategoryDto,
