@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { Category } from './category.entity';
@@ -22,6 +23,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import { UpdateDefaultCategoriesDto } from './dto/update-default-categories';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @Controller('categories')
 @ApiTags('Categories')
@@ -100,5 +104,17 @@ export class CategoriesController {
     } else {
       return this.categoriesService.deleteCategoryById(categoryId, user);
     }
+  }
+
+  @Put('default')
+  @ApiOperation({ summary: 'Update default caterogies (for Administrators)' })
+  @ApiOkResponse({ type: UpdateDefaultCategoriesDto })
+  @UseGuards(RolesGuard)
+  @Roles(UserRoles.ADMIN)
+  updateDefaultCategories(
+    @Body()
+    dto: UpdateDefaultCategoriesDto,
+  ): { categories: string[] } {
+    return { categories: this.categoriesService.updateDefaultcategories(dto) };
   }
 }
