@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoriesService } from 'src/categories/categories.service';
@@ -63,11 +65,11 @@ export class UsersService {
     const user = await this.usersRepository.findOne({ where: { id } });
 
     if (!user) {
-      throw new BadRequestException('User you want to update does not exists');
+      throw new NotFoundException('User you want to update does not exists');
     }
 
     if (questioner && id !== questioner?.id && user?.role === UserRoles.ADMIN) {
-      throw new BadRequestException(
+      throw new ForbiddenException(
         ' You are not allowed to update another Administrator',
       );
     }
@@ -93,7 +95,7 @@ export class UsersService {
     return await this.usersRepository.save({
       ...user,
       ...updateUserDto,
-      password: hashedPassword || user.password,
+      password: hashedPassword ?? user.password,
     });
   }
 
@@ -115,9 +117,7 @@ export class UsersService {
       const result = await this.usersRepository.delete({ id });
 
       if (!result.affected) {
-        throw new BadRequestException(
-          'User you want to delete does not exists',
-        );
+        throw new NotFoundException('User you want to delete does not exists');
       }
 
       return null;
@@ -125,13 +125,11 @@ export class UsersService {
       const user = await this.getUserById(id);
 
       if (!user) {
-        throw new BadRequestException(
-          'User you want to delete does not exists',
-        );
+        throw new NotFoundException('User you want to delete does not exists');
       }
 
       if (user.id !== questioner.id && user.role === UserRoles.ADMIN) {
-        throw new BadRequestException("You can't delete another Administrator");
+        throw new ForbiddenException("You can't delete another Administrator");
       }
       await this.usersRepository.delete({ id });
       return null;

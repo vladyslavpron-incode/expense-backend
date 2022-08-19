@@ -2,7 +2,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
-import { refreshTokenOptions, refreshTokenPayload } from '../tokens.settings';
+import { refreshTokenOptions, RefreshTokenPayload } from '../tokens.settings';
 
 import { UsersService } from 'src/users/users.service';
 import type { User } from 'src/users/user.entity';
@@ -26,7 +26,7 @@ export class RefreshStrategy extends PassportStrategy(Strategy, 'refresh') {
     });
   }
 
-  async validate(payload: refreshTokenPayload): Promise<User> {
+  async validate(payload: RefreshTokenPayload): Promise<User> {
     if (!payload) {
       throw new UnauthorizedException(
         'Your refresh token is invalid or has expired',
