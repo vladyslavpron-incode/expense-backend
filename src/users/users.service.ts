@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoriesService } from 'src/categories/categories.service';
-import type { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { User, UserRoles } from './user.entity';
 import bcrypt from 'bcrypt';
 import type { CreateUserDto } from './dto/create-user.dto';
@@ -35,7 +35,9 @@ export class UsersService {
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { username } });
+    return this.usersRepository.findOne({
+      where: { username: ILike(username) },
+    });
   }
 
   async getUserByRefreshToken(refreshToken: string): Promise<User | null> {
