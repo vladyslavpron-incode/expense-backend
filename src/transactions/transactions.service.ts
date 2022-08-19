@@ -26,6 +26,16 @@ export class TransactionsService {
     return this.transactionsRepository.find();
   }
 
+  async getTransaction(
+    id: number,
+    questioner: User,
+  ): Promise<Transaction | null> {
+    if (questioner.role === UserRoles.ADMIN) {
+      return this.getTransactionById(id);
+    }
+    return this.getUserTransactionById(questioner, id);
+  }
+
   async getUserTransactions(user: User): Promise<Transaction[]> {
     return this.transactionsRepository.find({
       where: { user },
@@ -46,7 +56,10 @@ export class TransactionsService {
     user: User,
     id: number,
   ): Promise<Transaction | null> {
-    return this.transactionsRepository.findOne({ where: { user, id } });
+    return this.transactionsRepository.findOne({
+      where: { user, id },
+      relations: { user: true },
+    });
   }
 
   async createTransaction(
@@ -76,12 +89,12 @@ export class TransactionsService {
   async updateTransaction(
     id: number,
     updateTransactionDto: UpdateTransactionDto,
-    user?: User,
-    questioner?: User,
+    questioner: User,
   ): Promise<Transaction> {
-    const transaction = user
-      ? await this.getUserTransactionById(user, id)
-      : await this.getTransactionById(id, { user: true });
+    const transaction =
+      questioner.role !== UserRoles.ADMIN
+        ? await this.getUserTransactionById(questioner, id)
+        : await this.getTransactionById(id, { user: true });
 
     if (!transaction) {
       throw new NotFoundException(
@@ -117,34 +130,26 @@ export class TransactionsService {
     });
   }
 
-  async deleteTransactionById(id: number, questioner?: User): Promise<null> {
-    if (!questioner) {
-      const result = await this.transactionsRepository.delete({ id });
+  async deleteTransaction(id: number, questioner: User): Promise<null> {
+    const transaction =
+      questioner.role !== UserRoles.ADMIN
+        ? await this.getUserTransactionById(questioner, id)
+        : await this.getTransactionById(id, { user: true });
 
-      if (!result.affected) {
-        throw new NotFoundException(
-          'Transaction you want to delete does not exists',
-        );
-      }
-
-      return null;
-    } else {
-      const transaction = await this.getTransactionById(id, { user: true });
-      if (!transaction) {
-        throw new NotFoundException(
-          'Transaction you want to delete does not exists',
-        );
-      }
-      if (
-        questioner.id !== transaction.user.id &&
-        transaction.user.role === UserRoles.ADMIN
-      ) {
-        throw new ForbiddenException(
-          'You are not allowed to delete transaction of another Administrator',
-        );
-      }
-      await this.transactionsRepository.delete({ id });
-      return null;
+    if (!transaction) {
+      throw new NotFoundException(
+        'Transaction you want to delete does not exists',
+      );
     }
+    if (
+      questioner.id !== transaction.user.id &&
+      transaction.user.role === UserRoles.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'You are not allowed to delete transaction of another Administrator',
+      );
+    }
+    await this.transactionsRepository.delete({ id });
+    return null;
   }
 }

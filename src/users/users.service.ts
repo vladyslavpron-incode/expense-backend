@@ -120,41 +120,42 @@ export class UsersService {
     return null;
   }
 
-  async deleteUser(user: User, deleteUserDto: DeleteUserDto): Promise<null> {
-    const isPasswordCorrect = await bcrypt.compare(
-      deleteUserDto.password,
-      user.password,
-    );
+  async deleteUser(
+    user: User | number,
+    questioner: User,
+    deleteUserDto?: DeleteUserDto,
+  ): Promise<null> {
+    // Admins on request can pass only userId which they want to delete, also they don't have to provide password
 
-    if (!isPasswordCorrect) {
-      throw new BadRequestException('Invalid password');
+    if (typeof user === 'number') {
+      const getUser = await this.getUserById(user);
+      if (!getUser) {
+        throw new NotFoundException('User you want to delete does not exists');
+      }
+      user = getUser;
     }
 
-    await this.usersRepository.delete(user);
+    if (deleteUserDto) {
+      const isPasswordCorrect = await bcrypt.compare(
+        deleteUserDto.password,
+        user.password,
+      );
+      if (!isPasswordCorrect) {
+        throw new BadRequestException('Invalid password');
+      }
+    }
+
+    if (user.id === questioner.id) {
+      throw new BadRequestException(
+        "You can't use this endpoint to delete your account, please use endpoint to delete current account",
+      );
+    }
+
+    if (user.id !== questioner.id && user.role === UserRoles.ADMIN) {
+      throw new ForbiddenException("You can't delete another Administrator");
+    }
+
+    await this.usersRepository.delete({ id: user.id });
     return null;
-  }
-
-  async deleteUserById(id: number, questioner?: User): Promise<null> {
-    if (!questioner) {
-      const result = await this.usersRepository.delete({ id });
-
-      if (!result.affected) {
-        throw new NotFoundException('User you want to delete does not exists');
-      }
-
-      return null;
-    } else {
-      const user = await this.getUserById(id);
-
-      if (!user) {
-        throw new NotFoundException('User you want to delete does not exists');
-      }
-
-      if (user.id !== questioner.id && user.role === UserRoles.ADMIN) {
-        throw new ForbiddenException("You can't delete another Administrator");
-      }
-      await this.usersRepository.delete({ id });
-      return null;
-    }
   }
 }

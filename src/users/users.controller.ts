@@ -96,7 +96,7 @@ export class UsersController {
     @AuthUser() user: User,
     @Body() deleteUserDto: DeleteUserDto,
   ): Promise<null> {
-    return this.usersService.deleteUser(user, deleteUserDto);
+    return this.usersService.deleteUser(user, user, deleteUserDto);
   }
 
   @Delete(':userId')
@@ -107,6 +107,6 @@ export class UsersController {
     @AuthUser() user: User,
     @Param('userId') userId: number,
   ): Promise<null> {
-    return this.usersService.deleteUserById(userId, user);
+    return this.usersService.deleteUser(userId, user);
   }
 }
