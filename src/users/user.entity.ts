@@ -39,6 +39,11 @@ export class User {
   refreshToken!: string;
 
   @ApiHideProperty()
+  @Exclude()
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  logoutTimestamp!: Date;
+
+  @ApiHideProperty()
   @OneToMany(() => Category, (category) => category.user, {
     cascade: true,
   })

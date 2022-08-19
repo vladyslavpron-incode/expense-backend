@@ -95,6 +95,7 @@ export class AuthService {
 
   async logout(user: User): Promise<null> {
     await this.usersService.deleteUserRefreshToken(user.id);
+    await this.usersService.updateUserLogoutTimestamp(user.id, new Date());
 
     return null;
   }

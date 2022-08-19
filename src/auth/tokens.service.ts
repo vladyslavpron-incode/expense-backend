@@ -76,10 +76,12 @@ export interface RefreshTokenPayload {
   id: number;
   username: string;
   role: UserRoles;
+  iat?: number;
 }
 
 export interface AccessTokenPayload {
   id: number;
   username: string;
   role: UserRoles;
+  iat?: number;
 }

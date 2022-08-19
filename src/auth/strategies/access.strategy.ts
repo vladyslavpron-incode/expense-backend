@@ -40,6 +40,13 @@ export class AccessStrategy extends PassportStrategy(Strategy, 'access') {
       throw new UnauthorizedException('Your access token is invalid');
     }
 
+    if (
+      user.logoutTimestamp &&
+      payload.iat &&
+      payload.iat * 1000 < user.logoutTimestamp.getTime()
+    ) {
+      throw new UnauthorizedException('Your access token has expired');
+    }
     return user;
   }
 }

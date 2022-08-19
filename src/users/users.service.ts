@@ -112,6 +112,11 @@ export class UsersService {
     return null;
   }
 
+  async updateUserLogoutTimestamp(id: number, timestamp: Date): Promise<null> {
+    await this.usersRepository.update({ id }, { logoutTimestamp: timestamp });
+    return null;
+  }
+
   async deleteUserById(id: number, questioner?: User): Promise<null> {
     if (!questioner) {
       const result = await this.usersRepository.delete({ id });
