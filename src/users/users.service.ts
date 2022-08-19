@@ -14,6 +14,7 @@ import { User, UserRoles } from './user.entity';
 import bcrypt from 'bcrypt';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
+import type { DeleteUserDto } from './dto/delete-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -116,6 +117,20 @@ export class UsersService {
 
   async updateUserLogoutTimestamp(id: number, timestamp: Date): Promise<null> {
     await this.usersRepository.update({ id }, { logoutTimestamp: timestamp });
+    return null;
+  }
+
+  async deleteUser(user: User, deleteUserDto: DeleteUserDto): Promise<null> {
+    const isPasswordCorrect = await bcrypt.compare(
+      deleteUserDto.password,
+      user.password,
+    );
+
+    if (!isPasswordCorrect) {
+      throw new BadRequestException('Invalid password');
+    }
+
+    await this.usersRepository.delete(user);
     return null;
   }
 
