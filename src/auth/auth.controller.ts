@@ -11,7 +11,6 @@ import type { Response } from 'express';
 import { User } from 'src/users/user.entity';
 import { AuthService } from './auth.service';
 import { RefreshAuthGuard } from './guards/refresh-auth.guard';
-import { refreshTokenCookieOptios } from './tokens.settings';
 import { AuthUser } from './decorators/user.decorator';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginUserDto } from 'src/users/dto/login-user.dto';
@@ -24,11 +23,15 @@ import {
 import type { RegisterResponseDto } from './dto/register-response.dto';
 import type { LoginResponseDto } from './dto/login-response.dto';
 import type { RefreshResponseDto } from './dto/refresh-response.dto';
+import { TokensService } from './tokens.service';
 
 @Controller('auth')
 @ApiTags('Authentication')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly tokensService: TokensService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Register new user' })
@@ -49,7 +52,7 @@ export class AuthController {
     response.cookie(
       'refreshToken',
       responseData.tokens.refreshToken,
-      refreshTokenCookieOptios,
+      this.tokensService.refreshTokenCookieOptions,
     );
     return responseData;
   }
@@ -59,7 +62,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get new access token using refresh token' })
   @UseGuards(RefreshAuthGuard)
   refresh(@AuthUser() user: User): RefreshResponseDto {
-    const accessToken = this.authService.generateAccessToken(user);
+    const accessToken = this.tokensService.generateAccessToken(user);
     return { accessToken };
   }
 
@@ -77,7 +80,10 @@ export class AuthController {
   ): Promise<null> {
     await this.authService.logout(user);
 
-    response.clearCookie('refreshToken', refreshTokenCookieOptios);
+    response.clearCookie(
+      'refreshToken',
+      this.tokensService.refreshTokenCookieOptions,
+    );
 
     return null;
   }
