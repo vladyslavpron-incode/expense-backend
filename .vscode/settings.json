@@ -5,6 +5,11 @@
     "linter",
     "module",
     "git",
-    "exception"
+    "exceptions",
+    "auth",
+    "roles",
+    "categories",
+    "users",
+    "transactions"
   ]
 }

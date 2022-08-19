@@ -50,7 +50,7 @@ export class UsersService {
       user,
     );
 
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 5);
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     user.password = hashedPassword;
 
     await this.usersRepository.save({ ...user, categories });
@@ -88,15 +88,17 @@ export class UsersService {
         );
     }
 
-    const hashedPassword = updateUserDto.password
-      ? await bcrypt.hash(updateUserDto.password, 5)
-      : undefined;
-
     return await this.usersRepository.save({
       ...user,
       ...updateUserDto,
-      password: hashedPassword ?? user.password,
     });
+  }
+
+  async updateUserPassword(user: User, password: string): Promise<User> {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+
+    return await this.usersRepository.save(user);
   }
 
   async updateUserRefreshToken(

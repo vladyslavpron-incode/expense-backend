@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  Patch,
   Post,
   Res,
   UseGuards,
@@ -16,6 +17,7 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginUserDto } from 'src/users/dto/login-user.dto';
 import {
   ApiBasicAuth,
+  ApiBearerAuth,
   ApiCookieAuth,
   ApiOperation,
   ApiTags,
@@ -24,6 +26,8 @@ import type { RegisterResponseDto } from './dto/register-response.dto';
 import type { LoginResponseDto } from './dto/login-response.dto';
 import type { RefreshResponseDto } from './dto/refresh-response.dto';
 import { TokensService } from './tokens.service';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { AccessAuthGuard } from './guards/access-auth.guard';
 
 @Controller('auth')
 @ApiTags('Authentication')
@@ -64,6 +68,25 @@ export class AuthController {
   refresh(@AuthUser() user: User): RefreshResponseDto {
     const accessToken = this.tokensService.generateAccessToken(user);
     return { accessToken };
+  }
+
+  @Patch('update-password')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change password' })
+  @UseGuards(AccessAuthGuard)
+  async updatePassword(
+    @AuthUser() user: User,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<null> {
+    await this.authService.updatePassword(user, updatePasswordDto);
+
+    response.clearCookie(
+      'refreshToken',
+      this.tokensService.refreshTokenCookieOptions,
+    );
+
+    return null;
   }
 
   @Post('logout')
