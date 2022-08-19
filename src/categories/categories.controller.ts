@@ -47,11 +47,7 @@ export class CategoriesController {
     @AuthUser() user: User,
     @Param('categoryId') categoryId: number,
   ): Promise<Category | null> {
-    if (user.role === UserRoles.ADMIN) {
-      return this.categoriesService.getCategoryById(categoryId);
-    } else {
-      return this.categoriesService.getUserCategoryById(user, categoryId);
-    }
+    return this.categoriesService.getCategory(categoryId, user);
   }
 
   // TODO: allow admins to create categories for other users
@@ -71,21 +67,11 @@ export class CategoriesController {
     @Param('categoryId') categoryId: number,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ): Promise<Category> {
-    let result: Category;
-    if (user.role === UserRoles.ADMIN) {
-      result = await this.categoriesService.updateCategory(
-        categoryId,
-        updateCategoryDto,
-        undefined,
-        user,
-      );
-    } else {
-      result = await this.categoriesService.updateCategory(
-        categoryId,
-        updateCategoryDto,
-        user,
-      );
-    }
+    const result = await this.categoriesService.updateCategory(
+      categoryId,
+      updateCategoryDto,
+      user,
+    );
     return plainToInstance(Category, result);
   }
 
@@ -95,15 +81,7 @@ export class CategoriesController {
     @AuthUser() user: User,
     @Param('categoryId') categoryId: number,
   ): Promise<null> {
-    if (user.role === UserRoles.ADMIN) {
-      return this.categoriesService.deleteCategoryById(
-        categoryId,
-        undefined,
-        user,
-      );
-    } else {
-      return this.categoriesService.deleteCategoryById(categoryId, user);
-    }
+    return this.categoriesService.deleteCategory(categoryId, user);
   }
 
   @Put('default')

@@ -18,6 +18,7 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuthUser } from 'src/auth/decorators/user.decorator';
 import { AccessAuthGuard } from 'src/auth/guards/access-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { DeleteUserDto } from './dto/delete-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserRoles } from './user.entity';
 import { UsersService } from './users.service';
@@ -91,8 +92,11 @@ export class UsersController {
 
   @Delete()
   @ApiOperation({ summary: 'Delete current user' })
-  deleteCurrentUser(@AuthUser() user: User): Promise<null> {
-    return this.usersService.deleteUserById(user.id);
+  deleteCurrentUser(
+    @AuthUser() user: User,
+    @Body() deleteUserDto: DeleteUserDto,
+  ): Promise<null> {
+    return this.usersService.deleteUser(user, user, deleteUserDto);
   }
 
   @Delete(':userId')
@@ -103,6 +107,6 @@ export class UsersController {
     @AuthUser() user: User,
     @Param('userId') userId: number,
   ): Promise<null> {
-    return this.usersService.deleteUserById(userId, user);
+    return this.usersService.deleteUser(userId, user);
   }
 }

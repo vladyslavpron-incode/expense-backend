@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   forwardRef,
   Inject,
@@ -14,6 +15,7 @@ import type { LoginUserDto } from 'src/users/dto/login-user.dto';
 import type { RegisterResponseDto } from './dto/register-response.dto';
 import type { LoginResponseDto } from './dto/login-response.dto';
 import { TokensService } from './tokens.service';
+import type { UpdatePasswordDto } from './dto/update-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -93,8 +95,38 @@ export class AuthService {
     return accessToken;
   }
 
+  async updatePassword(
+    user: User,
+    updatePasswordDto: UpdatePasswordDto,
+  ): Promise<null> {
+    if (
+      updatePasswordDto.newPassword !== updatePasswordDto.newPasswordConfirm
+    ) {
+      throw new BadRequestException(
+        'newPassword and newPasswordConfirm does not match',
+      );
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(
+      updatePasswordDto.currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordCorrect) {
+      throw new BadRequestException('Invalid currentPassword');
+    }
+
+    await this.usersService.updateUserPassword(
+      user,
+      updatePasswordDto.newPassword,
+    );
+    await this.logout(user);
+    return null;
+  }
+
   async logout(user: User): Promise<null> {
     await this.usersService.deleteUserRefreshToken(user.id);
+    await this.usersService.updateUserLogoutTimestamp(user.id, new Date());
 
     return null;
   }

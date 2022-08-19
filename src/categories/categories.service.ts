@@ -25,6 +25,13 @@ export class CategoriesService {
     return this.categoriesRepository.find();
   }
 
+  async getCategory(id: number, questioner: User): Promise<Category | null> {
+    if (questioner.role === UserRoles.ADMIN) {
+      return this.getCategoryById(id);
+    }
+    return this.getUserCategoryById(questioner, id);
+  }
+
   async getCategoryById(id: number): Promise<Category | null> {
     return this.categoriesRepository.findOne({
       where: { id },
@@ -49,7 +56,7 @@ export class CategoriesService {
   async getUserCategoryById(user: User, id: number): Promise<Category | null> {
     return this.categoriesRepository.findOne({
       where: { user, id },
-      relations: { transactions: true },
+      relations: { transactions: true, user: true },
     });
   }
 
@@ -100,12 +107,12 @@ export class CategoriesService {
   async updateCategory(
     id: number,
     updateCategoryDto: UpdateCategoryDto,
-    user?: User,
-    questioner?: User,
+    questioner: User,
   ): Promise<Category> {
-    const category = user
-      ? await this.getUserCategoryById(user, id)
-      : await this.getCategoryById(id);
+    const category =
+      questioner.role !== UserRoles.ADMIN
+        ? await this.getUserCategoryById(questioner, id)
+        : await this.getCategoryById(id);
 
     if (!category) {
       throw new NotFoundException(
@@ -114,8 +121,7 @@ export class CategoriesService {
     }
 
     if (
-      questioner &&
-      questioner?.id !== category.user.id &&
+      questioner.id !== category.user.id &&
       category.user.role === UserRoles.ADMIN
     ) {
       throw new ForbiddenException(
@@ -147,14 +153,11 @@ export class CategoriesService {
     });
   }
 
-  async deleteCategoryById(
-    id: number,
-    user?: User,
-    questioner?: User,
-  ): Promise<null> {
-    const category = user
-      ? await this.getUserCategoryById(user, id)
-      : await this.getCategoryById(id);
+  async deleteCategory(id: number, questioner: User): Promise<null> {
+    const category =
+      questioner.role !== UserRoles.ADMIN
+        ? await this.getUserCategoryById(questioner, id)
+        : await this.getCategoryById(id);
 
     if (!category) {
       throw new NotFoundException(

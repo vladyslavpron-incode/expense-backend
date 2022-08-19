@@ -53,14 +53,7 @@ export class TransactionsController {
     @AuthUser() user: User,
     @Param('transactionId') transactionId: number,
   ): Promise<Transaction | null> {
-    if (user.role === UserRoles.ADMIN) {
-      return this.transactionsService.getTransactionById(transactionId);
-    } else {
-      return this.transactionsService.getUserTransactionById(
-        user,
-        transactionId,
-      );
-    }
+    return this.transactionsService.getTransaction(transactionId, user);
   }
 
   // TODO: allow admins to create transactions for other users
@@ -87,19 +80,11 @@ export class TransactionsController {
     @Body() updateTransactionDto: UpdateTransactionDto,
   ): Promise<Transaction> {
     // transaction only moveable to categories of the same user
-    const result =
-      user.role === UserRoles.ADMIN
-        ? await this.transactionsService.updateTransaction(
-            transactionId,
-            updateTransactionDto,
-            undefined,
-            user,
-          )
-        : await this.transactionsService.updateTransaction(
-            transactionId,
-            updateTransactionDto,
-            user,
-          );
+    const result = await this.transactionsService.updateTransaction(
+      transactionId,
+      updateTransactionDto,
+      user,
+    );
 
     return plainToInstance(Transaction, result);
   }
@@ -110,6 +95,6 @@ export class TransactionsController {
     @AuthUser() user: User,
     @Param('transactionId') transactionId: number,
   ): Promise<null> {
-    return this.transactionsService.deleteTransactionById(transactionId, user);
+    return this.transactionsService.deleteTransaction(transactionId, user);
   }
 }

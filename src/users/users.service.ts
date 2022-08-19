@@ -14,6 +14,7 @@ import { User, UserRoles } from './user.entity';
 import bcrypt from 'bcrypt';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
+import type { DeleteUserDto } from './dto/delete-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -50,7 +51,7 @@ export class UsersService {
       user,
     );
 
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 5);
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     user.password = hashedPassword;
 
     await this.usersRepository.save({ ...user, categories });
@@ -88,15 +89,17 @@ export class UsersService {
         );
     }
 
-    const hashedPassword = updateUserDto.password
-      ? await bcrypt.hash(updateUserDto.password, 5)
-      : undefined;
-
     return await this.usersRepository.save({
       ...user,
       ...updateUserDto,
-      password: hashedPassword ?? user.password,
     });
+  }
+
+  async updateUserPassword(user: User, password: string): Promise<User> {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+
+    return await this.usersRepository.save(user);
   }
 
   async updateUserRefreshToken(
@@ -112,27 +115,47 @@ export class UsersService {
     return null;
   }
 
-  async deleteUserById(id: number, questioner?: User): Promise<null> {
-    if (!questioner) {
-      const result = await this.usersRepository.delete({ id });
+  async updateUserLogoutTimestamp(id: number, timestamp: Date): Promise<null> {
+    await this.usersRepository.update({ id }, { logoutTimestamp: timestamp });
+    return null;
+  }
 
-      if (!result.affected) {
+  async deleteUser(
+    user: User | number,
+    questioner: User,
+    deleteUserDto?: DeleteUserDto,
+  ): Promise<null> {
+    // Admins on request can pass only userId which they want to delete, also they don't have to provide password
+
+    if (typeof user === 'number') {
+      const getUser = await this.getUserById(user);
+      if (!getUser) {
         throw new NotFoundException('User you want to delete does not exists');
       }
-
-      return null;
-    } else {
-      const user = await this.getUserById(id);
-
-      if (!user) {
-        throw new NotFoundException('User you want to delete does not exists');
-      }
-
-      if (user.id !== questioner.id && user.role === UserRoles.ADMIN) {
-        throw new ForbiddenException("You can't delete another Administrator");
-      }
-      await this.usersRepository.delete({ id });
-      return null;
+      user = getUser;
     }
+
+    if (deleteUserDto) {
+      const isPasswordCorrect = await bcrypt.compare(
+        deleteUserDto.password,
+        user.password,
+      );
+      if (!isPasswordCorrect) {
+        throw new BadRequestException('Invalid password');
+      }
+    }
+
+    if (user.id === questioner.id) {
+      throw new BadRequestException(
+        "You can't use this endpoint to delete your account, please use endpoint to delete current account",
+      );
+    }
+
+    if (user.id !== questioner.id && user.role === UserRoles.ADMIN) {
+      throw new ForbiddenException("You can't delete another Administrator");
+    }
+
+    await this.usersRepository.delete({ id: user.id });
+    return null;
   }
 }
