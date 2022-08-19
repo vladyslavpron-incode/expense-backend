@@ -3,10 +3,14 @@ import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+import type { Config } from './utils/config';
 // import { validationMetadatasToSchemas } from 'class-validator-jsonschema';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService<Config, true>);
+
   app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
@@ -30,6 +34,6 @@ async function bootstrap() {
 
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(3000);
+  await app.listen(configService.get<string>('PORT'));
 }
 bootstrap();

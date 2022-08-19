@@ -1,27 +1,25 @@
 import {
   ConflictException,
+  forwardRef,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import type { User } from 'src/users/user.entity';
 import { UsersService } from 'src/users/users.service';
-import {
-  accessTokenOptions,
-  AccessTokenPayload,
-  refreshTokenOptions,
-  RefreshTokenPayload,
-} from './tokens.settings';
+
 import bcrypt from 'bcrypt';
 import type { CreateUserDto } from 'src/users/dto/create-user.dto';
 import type { LoginUserDto } from 'src/users/dto/login-user.dto';
 import type { RegisterResponseDto } from './dto/register-response.dto';
 import type { LoginResponseDto } from './dto/login-response.dto';
+import { TokensService } from './tokens.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly jwtService: JwtService,
+    @Inject(forwardRef(() => TokensService))
+    private readonly tokensService: TokensService,
     private readonly usersService: UsersService,
   ) {}
 
@@ -38,8 +36,8 @@ export class AuthService {
 
     const user = await this.usersService.createUser(createUserDto);
 
-    const accessToken = this.generateAccessToken(user);
-    const refreshToken = this.generateRefreshToken(user);
+    const accessToken = this.tokensService.generateAccessToken(user);
+    const refreshToken = this.tokensService.generateRefreshToken(user);
 
     user.refreshToken = refreshToken;
     await this.usersService.updateUserRefreshToken(user.id, refreshToken);
@@ -66,8 +64,8 @@ export class AuthService {
       throw new UnauthorizedException('wrong username or password');
     }
 
-    const accessToken = this.generateAccessToken(user);
-    const refreshToken = this.generateRefreshToken(user);
+    const accessToken = this.tokensService.generateAccessToken(user);
+    const refreshToken = this.tokensService.generateRefreshToken(user);
 
     await this.usersService.updateUserRefreshToken(user.id, refreshToken);
     user.refreshToken = refreshToken;
@@ -79,7 +77,7 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string): Promise<string> {
-    const payload = this.validateRefreshToken(refreshToken);
+    const payload = this.tokensService.validateRefreshToken(refreshToken);
     const savedUser = await this.usersService.getUserByRefreshToken(
       refreshToken,
     );
@@ -90,7 +88,7 @@ export class AuthService {
       );
     }
 
-    const accessToken = this.generateAccessToken(savedUser);
+    const accessToken = this.tokensService.generateAccessToken(savedUser);
 
     return accessToken;
   }
@@ -99,48 +97,5 @@ export class AuthService {
     await this.usersService.deleteUserRefreshToken(user.id);
 
     return null;
-  }
-
-  validateAccessToken(accessToken: string): AccessTokenPayload | null {
-    try {
-      const payload: AccessTokenPayload = this.jwtService.verify(
-        accessToken,
-        accessTokenOptions,
-      );
-      return payload;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  validateRefreshToken(refreshToken: string): RefreshTokenPayload | null {
-    try {
-      const payload: RefreshTokenPayload = this.jwtService.verify(
-        refreshToken,
-        refreshTokenOptions,
-      );
-      return payload;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  generateAccessToken(user: User): string {
-    const payload: AccessTokenPayload = {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-    };
-
-    return this.jwtService.sign(payload, accessTokenOptions);
-  }
-
-  generateRefreshToken(user: User): string {
-    const payload: RefreshTokenPayload = {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-    };
-    return this.jwtService.sign(payload, refreshTokenOptions);
   }
 }
