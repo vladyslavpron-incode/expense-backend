@@ -10,6 +10,7 @@ import { Transaction } from './transactions/transaction.entity';
 import { CategoriesModule } from './categories/categories.module';
 import { Category } from './categories/category.entity';
 import { Config, configSchema } from './utils/config';
+import { DefaultCategory } from './categories/default-categories.entity';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { Config, configSchema } from './utils/config';
       useFactory: (configService: ConfigService<Config, true>) => ({
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
-        entities: [User, Category, Transaction],
+        entities: [User, Category, Transaction, DefaultCategory],
         synchronize: true,
         ssl: true,
         extra: {

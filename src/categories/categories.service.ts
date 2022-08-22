@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserRoles } from 'src/users/user.entity';
 import type { Repository } from 'typeorm';
 import { Category } from './category.entity';
-import { defaultCategories, setDefaultCategories } from './default.categories';
+import { DefaultCategory } from './default-categories.entity';
 import type { CreateCategoryDto } from './dto/create-category.dto';
 import type { UpdateCategoryDto } from './dto/update-category.dto';
 import type { UpdateDefaultCategoriesDto } from './dto/update-default-categories';
@@ -19,6 +19,8 @@ export class CategoriesService {
   constructor(
     @InjectRepository(Category)
     private categoriesRepository: Repository<Category>,
+    @InjectRepository(DefaultCategory)
+    private defaultCategoriesRepository: Repository<DefaultCategory>,
   ) {}
 
   async getAllCategories(): Promise<Category[]> {
@@ -96,8 +98,18 @@ export class CategoriesService {
   }
 
   async createDefaultCategories(user: User): Promise<Category[]> {
+    // cache defaultCategories for better performance
+    if (!defaultCategoriesFetched) {
+      defaultCategories = (await this.defaultCategoriesRepository.find()).map(
+        (category) => category.label,
+      );
+      defaultCategoriesFetched = true;
+    }
+
+    const defaultCategoriesLabels = defaultCategories;
+
     const categories = this.categoriesRepository.create([
-      ...defaultCategories.map((category) => ({ label: category, user })),
+      ...defaultCategoriesLabels.map((category) => ({ label: category, user })),
       { label: 'Other', user },
     ]);
 
@@ -208,11 +220,27 @@ export class CategoriesService {
     return defaultCategories;
   }
 
-  updateDefaultCategories({
+  async updateDefaultCategories({
     categories,
-  }: UpdateDefaultCategoriesDto): string[] {
-    return setDefaultCategories(
-      categories.filter((category) => category !== 'Other'),
+  }: UpdateDefaultCategoriesDto): Promise<string[]> {
+    await this.defaultCategoriesRepository.delete({});
+
+    const filteredCategories = categories.filter(
+      (category) => category !== 'Other',
     );
+
+    const defaultCategoriesEntities = this.defaultCategoriesRepository.create(
+      filteredCategories.map((category) => ({ label: category })),
+    );
+    const result = await this.defaultCategoriesRepository
+      .save(defaultCategoriesEntities)
+      .then((result) => result.map((category) => category.label));
+
+    defaultCategories = result;
+
+    return result;
   }
 }
+
+let defaultCategories: string[] = [];
+let defaultCategoriesFetched = false;
