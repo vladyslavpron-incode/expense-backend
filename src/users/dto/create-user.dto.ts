@@ -1,6 +1,4 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, Length } from 'class-validator';
-import { UserRoles } from '../user.entity';
+import { IsString, Length } from 'class-validator';
 
 export class CreateUserDto {
   @IsString({ message: 'username must be a string' })
@@ -15,17 +13,17 @@ export class CreateUserDto {
   })
   readonly displayName!: string;
 
-  @IsOptional()
-  @ApiPropertyOptional({
-    enum: UserRoles,
-    default: UserRoles.USER,
-    description: 'User role',
-    required: false,
-  })
-  @IsEnum(UserRoles, {
-    message: `Role must be one of: ${Object.values(UserRoles).join(', ')}`,
-  })
-  readonly role?: UserRoles;
+  // @IsOptional()
+  // @ApiPropertyOptional({
+  //   enum: UserRoles,
+  //   default: UserRoles.USER,
+  //   description: 'User role',
+  //   required: false,
+  // })
+  // @IsEnum(UserRoles, {
+  //   message: `Role must be one of: ${Object.values(UserRoles).join(', ')}`,
+  // })
+  // readonly role?: UserRoles;
 
   @IsString({ message: 'Password must be a string' })
   @Length(4, 30, {
