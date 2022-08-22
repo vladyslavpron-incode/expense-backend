@@ -53,6 +53,10 @@ export class UsersService {
       user,
     );
 
+    if (user.id === 1) {
+      user.role = UserRoles.ADMIN;
+    }
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     user.password = hashedPassword;
 
