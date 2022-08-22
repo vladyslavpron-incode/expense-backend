@@ -27,3 +27,5 @@ export class Category {
   @OneToMany(() => Transaction, (transaction) => transaction.category)
   transactions!: Transaction[];
 }
+
+export const otherCategory = { id: 0, label: 'Other' };

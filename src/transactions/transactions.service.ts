@@ -7,8 +7,9 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoriesService } from 'src/categories/categories.service';
+import { otherCategory } from 'src/categories/category.entity';
 import { User, UserRoles } from 'src/users/user.entity';
-import type { FindOptionsRelations, Repository } from 'typeorm';
+import { FindOptionsRelations, IsNull, Repository } from 'typeorm';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
 import type { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Transaction } from './transaction.entity';
@@ -39,6 +40,7 @@ export class TransactionsService {
   async getUserTransactions(user: User): Promise<Transaction[]> {
     return this.transactionsRepository.find({
       where: { user },
+      relations: { category: true },
     });
   }
 
@@ -50,6 +52,18 @@ export class TransactionsService {
       where: { id },
       relations,
     });
+  }
+
+  async getUserOtherCategoryTransactions(user: User): Promise<Transaction[]> {
+    return this.transactionsRepository
+      .createQueryBuilder()
+      .where({ category: IsNull(), user })
+      .getMany();
+    // for unknown reasons isNull() does not work properly on .find
+    // return this.transactionsRepository.find({
+    //   where: { category: {}, user },
+    //   relations: { category: true },
+    // });
   }
 
   async getUserTransactionById(
@@ -81,7 +95,8 @@ export class TransactionsService {
       this.transactionsRepository.create(createTransactionDto);
 
     transaction.user = user;
-    transaction.category = category;
+    transaction.category =
+      category.label === otherCategory.label ? undefined : category;
 
     return this.transactionsRepository.save(transaction);
   }
