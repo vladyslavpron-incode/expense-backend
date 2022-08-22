@@ -1,8 +1,15 @@
 import { ApiHideProperty } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
-import { Category } from 'src/categories/category.entity';
+import { Category, otherCategory } from 'src/categories/category.entity';
 import { User } from 'src/users/user.entity';
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  EntitySubscriberInterface,
+  EventSubscriber,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity({ name: 'transactions' })
 export class Transaction {
@@ -21,12 +28,27 @@ export class Transaction {
   @ApiHideProperty()
   @Exclude()
   @ManyToOne(() => Category, (category) => category.transactions, {
-    onDelete: 'CASCADE',
+    onDelete: 'SET NULL',
   })
-  category!: Category;
+  category?: Category;
 
   @ApiHideProperty()
   @Exclude()
   @ManyToOne(() => User, (user) => user.transactions, { onDelete: 'CASCADE' })
   user!: User;
+}
+
+@EventSubscriber()
+export class TransactionSubscriber
+  implements EntitySubscriberInterface<Transaction>
+{
+  listenTo(): typeof Transaction {
+    return Transaction;
+  }
+
+  afterLoad(transaction: Transaction): void {
+    transaction.category =
+      transaction.category ??
+      ({ ...otherCategory, user: transaction.user } as Category);
+  }
 }

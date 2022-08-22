@@ -2,14 +2,17 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { TransactionsService } from 'src/transactions/transactions.service';
 import { User, UserRoles } from 'src/users/user.entity';
 import type { Repository } from 'typeorm';
-import { Category } from './category.entity';
-import { defaultCategories, setDefaultCategories } from './default.categories';
+import { Category, otherCategory } from './category.entity';
+import { DefaultCategory } from './default-categories.entity';
 import type { CreateCategoryDto } from './dto/create-category.dto';
 import type { UpdateCategoryDto } from './dto/update-category.dto';
 import type { UpdateDefaultCategoriesDto } from './dto/update-default-categories';
@@ -19,6 +22,10 @@ export class CategoriesService {
   constructor(
     @InjectRepository(Category)
     private categoriesRepository: Repository<Category>,
+    @InjectRepository(DefaultCategory)
+    private defaultCategoriesRepository: Repository<DefaultCategory>,
+    @Inject(forwardRef(() => TransactionsService))
+    private transactionsService: TransactionsService,
   ) {}
 
   async getAllCategories(): Promise<Category[]> {
@@ -27,19 +34,33 @@ export class CategoriesService {
 
   async getCategory(id: number, questioner: User): Promise<Category | null> {
     if (questioner.role === UserRoles.ADMIN) {
-      return this.getCategoryById(id);
+      return this.getCategoryById(id, questioner);
     }
     return this.getUserCategoryById(questioner, id);
   }
 
-  async getCategoryById(id: number): Promise<Category | null> {
+  async getCategoryById(
+    id: number,
+    questioner: User,
+  ): Promise<Category | null> {
+    if (id === otherCategory.id) {
+      return this.getUserOtherCategory(questioner);
+    }
+
     return this.categoriesRepository.findOne({
       where: { id },
       relations: { transactions: true, user: true },
     });
   }
 
-  async getCategoryByLabel(label: string): Promise<Category | null> {
+  async getCategoryByLabel(
+    label: string,
+    questioner: User,
+  ): Promise<Category | null> {
+    // check case for other
+    if (label === otherCategory.label) {
+      return this.getUserOtherCategory(questioner);
+    }
     return this.categoriesRepository.findOne({
       where: { label },
       relations: { transactions: true },
@@ -47,10 +68,14 @@ export class CategoriesService {
   }
 
   async getUserCategories(user: User): Promise<Category[]> {
-    return this.categoriesRepository.find({
+    const categories = await this.categoriesRepository.find({
       where: { user },
       relations: { transactions: true },
     });
+
+    const otherCategory = await this.getUserOtherCategory(user);
+
+    return [...categories, otherCategory];
   }
 
   async getUserCategoryById(user: User, id: number): Promise<Category | null> {
@@ -64,17 +89,20 @@ export class CategoriesService {
     user: User,
     label: string,
   ): Promise<Category | null> {
+    if (label === otherCategory.label) {
+      return this.getUserOtherCategory(user);
+    }
+
     return this.categoriesRepository.findOne({
       where: { user, label },
       relations: { transactions: true },
     });
   }
 
-  async getUserOtherCategory(user: User): Promise<Category | null> {
-    return this.categoriesRepository.findOne({
-      where: { user, label: 'Other' },
-      relations: { transactions: true },
-    });
+  async getUserOtherCategory(user: User): Promise<Category> {
+    const transactions =
+      await this.transactionsService.getUserOtherCategoryTransactions(user);
+    return { ...otherCategory, transactions } as Category;
   }
 
   async createCategory(
@@ -96,9 +124,18 @@ export class CategoriesService {
   }
 
   async createDefaultCategories(user: User): Promise<Category[]> {
+    // cache defaultCategories for better performance
+    if (!defaultCategoriesFetched) {
+      defaultCategories = (await this.defaultCategoriesRepository.find()).map(
+        (category) => category.label,
+      );
+      defaultCategoriesFetched = true;
+    }
+
+    const defaultCategoriesLabels = defaultCategories;
+
     const categories = this.categoriesRepository.create([
-      ...defaultCategories.map((category) => ({ label: category, user })),
-      { label: 'Other', user },
+      ...defaultCategoriesLabels.map((category) => ({ label: category, user })),
     ]);
 
     return this.categoriesRepository.save(categories);
@@ -112,11 +149,17 @@ export class CategoriesService {
     const category =
       questioner.role !== UserRoles.ADMIN
         ? await this.getUserCategoryById(questioner, id)
-        : await this.getCategoryById(id);
+        : await this.getCategoryById(id, questioner);
 
     if (!category) {
       throw new NotFoundException(
         'Category you want to update does not exists',
+      );
+    }
+
+    if (category.label === otherCategory.label) {
+      throw new BadRequestException(
+        'You are not allowed to rename this category',
       );
     }
 
@@ -126,12 +169,6 @@ export class CategoriesService {
     ) {
       throw new ForbiddenException(
         "You are not allowed to update other Administrator's category",
-      );
-    }
-
-    if (category.label === 'Other') {
-      throw new BadRequestException(
-        'You are not allowed to rename this category',
       );
     }
 
@@ -157,11 +194,17 @@ export class CategoriesService {
     const category =
       questioner.role !== UserRoles.ADMIN
         ? await this.getUserCategoryById(questioner, id)
-        : await this.getCategoryById(id);
+        : await this.getCategoryById(id, questioner);
 
     if (!category) {
       throw new NotFoundException(
         'Category you want to delete does not exists',
+      );
+    }
+
+    if (category?.label === otherCategory.label) {
+      throw new BadRequestException(
+        `You are not allowed to delete this category`,
       );
     }
 
@@ -173,26 +216,6 @@ export class CategoriesService {
       throw new ForbiddenException(
         'You are not allowed to delete category of another Administrator ',
       );
-    }
-
-    if (category?.label === 'Other') {
-      throw new BadRequestException(
-        `You are not allowed to delete this category`,
-      );
-    }
-
-    const otherCategory = await this.getUserOtherCategory(category.user);
-
-    if (otherCategory) {
-      if (otherCategory?.transactions) {
-        otherCategory.transactions = [
-          ...otherCategory?.transactions,
-          ...category.transactions,
-        ];
-      } else {
-        otherCategory.transactions = category.transactions;
-      }
-      await this.categoriesRepository.save(otherCategory);
     }
 
     const result = await this.categoriesRepository.delete({ id });
@@ -208,11 +231,27 @@ export class CategoriesService {
     return defaultCategories;
   }
 
-  updateDefaultCategories({
+  async updateDefaultCategories({
     categories,
-  }: UpdateDefaultCategoriesDto): string[] {
-    return setDefaultCategories(
-      categories.filter((category) => category !== 'Other'),
+  }: UpdateDefaultCategoriesDto): Promise<string[]> {
+    await this.defaultCategoriesRepository.delete({});
+
+    const filteredCategories = categories.filter(
+      (category) => category !== otherCategory.label,
     );
+
+    const defaultCategoriesEntities = this.defaultCategoriesRepository.create(
+      filteredCategories.map((category) => ({ label: category })),
+    );
+    const result = await this.defaultCategoriesRepository
+      .save(defaultCategoriesEntities)
+      .then((result) => result.map((category) => category.label));
+
+    defaultCategories = result;
+
+    return result;
   }
 }
+
+let defaultCategories: string[] = [];
+let defaultCategoriesFetched = false;

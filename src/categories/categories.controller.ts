@@ -89,10 +89,13 @@ export class CategoriesController {
   @ApiOkResponse({ type: UpdateDefaultCategoriesDto })
   @UseGuards(RolesGuard)
   @Roles(UserRoles.ADMIN)
-  updateDefaultCategories(
+  async updateDefaultCategories(
     @Body()
     dto: UpdateDefaultCategoriesDto,
-  ): { categories: string[] } {
-    return { categories: this.categoriesService.updateDefaultCategories(dto) };
+  ): Promise<{ categories: string[] }> {
+    const categories = await this.categoriesService.updateDefaultCategories(
+      dto,
+    );
+    return { categories };
   }
 }
