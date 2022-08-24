@@ -2,7 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { CategoriesService } from 'src/categories/categories.service';
 import { Category } from 'src/categories/category.entity';
-import { DeleteResult, ILike, Repository, UpdateResult } from 'typeorm';
+import {
+  DeepPartial,
+  DeleteResult,
+  ILike,
+  Repository,
+  UpdateResult,
+} from 'typeorm';
 import { User, UserRoles } from './user.entity';
 import bcrypt from 'bcrypt';
 import { UsersController } from './users.controller';
@@ -146,6 +152,39 @@ describe('UserService', () => {
       expect(spyBcryptHash).toHaveBeenCalled();
       expect(result).toEqual(user);
     });
+
+    it('should assign admin role to first user', async () => {
+      const firstUser = { ...user1, id: 1, password: '' };
+      const firstUserAdminRole = { ...firstUser, role: UserRoles.ADMIN };
+      const spyRepositoryCreate = jest
+        .spyOn(usersRepositoryMock, 'create')
+        .mockReturnValue(firstUser);
+
+      // because this method uses .save two times
+      const spyRepositorySave = jest
+        .spyOn(usersRepositoryMock, 'save')
+        .mockImplementation(
+          (user: DeepPartial<User>) =>
+            Promise.resolve(user.id ? user : firstUser) as Promise<User>,
+        );
+
+      const spyCreateDefaultCategories = jest.spyOn(
+        categoriesServiceMock,
+        'createDefaultCategories',
+      );
+
+      const spyBcryptHash = jest
+        .spyOn(bcrypt, 'hash')
+        .mockImplementation(() => Promise.resolve(''));
+
+      const result = await usersService.createUser(createUserDto);
+
+      expect(spyRepositoryCreate).toHaveBeenCalled();
+      expect(spyRepositorySave).toHaveBeenCalled();
+      expect(spyCreateDefaultCategories).toBeCalled();
+      expect(spyBcryptHash).toHaveBeenCalled();
+      expect(result).toEqual(firstUserAdminRole);
+    });
   });
 
   describe('updateUser method', () => {
@@ -197,7 +236,7 @@ describe('UserService', () => {
       expect(result).toEqual(updatedUser);
     });
 
-    it('should throw not found exception on updating non-existing user by admin', async () => {
+    it('should throw NotFoundException on updating non-existing user by admin', async () => {
       const spyRepositoryFindOne = jest
         .spyOn(usersRepositoryMock, 'findOne')
         .mockResolvedValue(null);
@@ -209,7 +248,7 @@ describe('UserService', () => {
       expect(spyRepositoryFindOne).toBeCalled();
     });
 
-    it('should throw forbidden exception on updating admin by admin', async () => {
+    it('should throw ForbiddenException on updating admin by admin', async () => {
       const spyRepositoryFindOne = jest
         .spyOn(usersRepositoryMock, 'findOne')
         .mockResolvedValue(admin);
@@ -221,7 +260,7 @@ describe('UserService', () => {
       expect(spyRepositoryFindOne).toBeCalled();
     });
 
-    it('should throw forbidden exception on updating role as non-admin', async () => {
+    it('should throw ForbiddenException on updating role as non-admin', async () => {
       const updateUserDtoWithRole = {
         ...updateUserDto,
         role: UserRoles.ADMIN,
@@ -347,7 +386,7 @@ describe('UserService', () => {
       expect(spyBcryptCompare).toBeCalled();
     });
 
-    it('should throw bad request on deleting own account with wrong password', async () => {
+    it('should throw BadRequestException on deleting own account with wrong password', async () => {
       const password = 'verysecretpassword';
 
       const spyBcryptCompare = jest
@@ -385,7 +424,7 @@ describe('UserService', () => {
       expect(spyGetUserById).toBeCalled();
     });
 
-    it('should throw bad request on deleting own account without providing password', async () => {
+    it('should throw BadRequestException on deleting own account without providing password', async () => {
       const spyRepositoryDelete = jest
         .spyOn(usersRepositoryMock, 'delete')
         .mockResolvedValue(new DeleteResult());
@@ -393,6 +432,12 @@ describe('UserService', () => {
       await usersService.deleteUser(user, user);
 
       expect(spyRepositoryDelete).toBeCalledWith({ id: user.id });
+    });
+
+    it('should throw BadRequestException on deleting own account by passing id (as pretending to delete another account', async () => {
+      expect(usersService.deleteUser(admin.id, admin)).rejects.toThrowError(
+        BadRequestException,
+      );
     });
   });
 });

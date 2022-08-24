@@ -240,17 +240,19 @@ describe('CategoriesService', () => {
     });
 
     it('should return user other category when its label met', async () => {
+      const userOtherCategory = { ...otherCategory, user } as Category;
+
       const spyGetUserOtherCategory = jest
         .spyOn(categoriesService, 'getUserOtherCategory')
-        .mockResolvedValue(category);
+        .mockResolvedValue(userOtherCategory);
 
-      const result = await categoriesService.getCategoryByLabel(
-        otherCategory.label,
+      const result = await categoriesService.getUserCategoryByLabel(
         user,
+        otherCategory.label,
       );
 
       expect(spyGetUserOtherCategory).toBeCalled();
-      expect(result).toEqual(category);
+      expect(result).toEqual(userOtherCategory);
     });
   });
 
