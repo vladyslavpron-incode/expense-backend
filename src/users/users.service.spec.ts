@@ -7,56 +7,21 @@ import { User, UserRoles } from './user.entity';
 import bcrypt from 'bcrypt';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
-import type { CreateUserDto } from './dto/create-user.dto';
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-
-const createUserDto1: CreateUserDto = {
-  username: 'test1',
-  displayName: 'testname1',
-  password: '1234',
-};
-
-const user1: User = new User();
-user1.id = 1;
-user1.username = 'test1';
-user1.displayName = 'testname1';
-user1.password = '';
-user1.role = UserRoles.ADMIN;
-user1.refreshToken = 'veryrefreshtokenuser1';
-
-// const createUserDto2 = {
-//   username: 'test1',
-//   displayName: 'testname1',
-//   password: '1234',
-// };
-
-const user2: User = new User();
-user2.id = 2;
-user2.username = 'test2';
-user2.displayName = 'testname2';
-user2.password = '';
-user2.role = UserRoles.USER;
-user2.refreshToken = 'veryrefreshtokenuser2';
-
-const usersArr = [user1, user2];
-
-// const createUserDto2 = {
-//   username: 'bob2',
-//   displayName: 'bobik2',
-//   password: '12345',
-// };
-
-// const user2 = {
-//   username: 'bob2',
-//   displayName: 'bobik2',
-//   password: '12345',
-//   role: UserRoles.USER,
-// };
+import {
+  admin1,
+  admin2,
+  createUserDto1,
+  updateUserDto1,
+  user1,
+  user2,
+  users,
+} from './users.stubs';
 
 describe('UserService', () => {
   let usersService: UsersService;
@@ -86,7 +51,7 @@ describe('UserService', () => {
   });
 
   describe('getAllUsers method', () => {
-    const usersArray = usersArr;
+    const usersArray = { ...users };
     it('should return array of users', async () => {
       const spyRepositoryFind = jest
         .spyOn(usersRepositoryMock, 'find')
@@ -153,9 +118,9 @@ describe('UserService', () => {
 
   describe('createUser method', () => {
     const createUserDto = createUserDto1;
-    const user = user1;
 
     it('should create user, default categories, hash password and return user', async () => {
+      const user = { ...user1 };
       const spyRepositoryCreate = jest
         .spyOn(usersRepositoryMock, 'create')
         .mockReturnValue(user);
@@ -185,35 +150,60 @@ describe('UserService', () => {
 
   describe('updateUser method', () => {
     const user = user1;
-    const updatingFields = { displayName: 'updatedTestUserName' };
-    const updatedUser = { ...user1, ...updatingFields };
-    const anotherAdminUser = { ...user2, role: UserRoles.ADMIN };
-    const anotherNonAdminUser: User = { ...user2, role: UserRoles.USER };
+    const updateUserDto = updateUserDto1;
+    const updatedUser = { ...user1, ...updateUserDto };
+    const anotherUser = user2;
 
-    it('should return updated user', async () => {
-      const spyRepositoryFindOne = jest
-        .spyOn(usersRepositoryMock, 'findOne')
-        .mockResolvedValue(user);
+    const admin = admin1;
+    const anotherAdmin = admin2;
+
+    it('should update user by himself', async () => {
+      jest.spyOn(usersRepositoryMock, 'findOne').mockResolvedValue(user);
+
+      jest
+        .spyOn(usersService, 'getUserByUsername')
+        .mockImplementation(() => Promise.resolve(null));
 
       const spyRepositorySave = jest
         .spyOn(usersRepositoryMock, 'save')
         .mockResolvedValue(updatedUser);
 
-      const result = await usersService.updateUser(user.id, updatingFields);
+      const result = await usersService.updateUser(user, updateUserDto, user);
 
-      expect(spyRepositoryFindOne).toBeCalled();
       expect(spyRepositorySave).toBeCalled();
 
       expect(result).toEqual(updatedUser);
     });
 
-    it('should throw not found exception on updating non-existing user', async () => {
+    it('should update user by admin', async () => {
+      jest.spyOn(usersRepositoryMock, 'findOne').mockResolvedValue(user);
+
+      jest
+        .spyOn(usersService, 'getUserByUsername')
+        .mockImplementation(() => Promise.resolve(null));
+
+      const spyRepositorySave = jest
+        .spyOn(usersRepositoryMock, 'save')
+        .mockResolvedValue(updatedUser);
+
+      const result = await usersService.updateUser(
+        user.id,
+        updateUserDto,
+        admin,
+      );
+
+      expect(spyRepositorySave).toBeCalled();
+
+      expect(result).toEqual(updatedUser);
+    });
+
+    it('should throw not found exception on updating non-existing user by admin', async () => {
       const spyRepositoryFindOne = jest
         .spyOn(usersRepositoryMock, 'findOne')
         .mockResolvedValue(null);
 
       expect(
-        usersService.updateUser(user.id, updatingFields, user),
+        usersService.updateUser(user.id, updateUserDto, admin),
       ).rejects.toThrowError(NotFoundException);
 
       expect(spyRepositoryFindOne).toBeCalled();
@@ -222,79 +212,52 @@ describe('UserService', () => {
     it('should throw forbidden exception on updating admin by admin', async () => {
       const spyRepositoryFindOne = jest
         .spyOn(usersRepositoryMock, 'findOne')
-        .mockResolvedValue(user);
+        .mockResolvedValue(admin);
 
       expect(
-        usersService.updateUser(user.id, updatingFields, anotherAdminUser),
+        usersService.updateUser(admin.id, updateUserDto, anotherAdmin),
       ).rejects.toThrowError(ForbiddenException);
 
       expect(spyRepositoryFindOne).toBeCalled();
     });
 
     it('should throw forbidden exception on updating role as non-admin', async () => {
-      const updatingFieldsAndRole = {
-        ...updatingFields,
+      const updateUserDtoWithRole = {
+        ...updateUserDto,
         role: UserRoles.ADMIN,
       };
 
-      const spyRepositoryFindOne = jest
-        .spyOn(usersRepositoryMock, 'findOne')
-        .mockResolvedValue(anotherNonAdminUser);
+      jest.spyOn(usersRepositoryMock, 'findOne').mockResolvedValue(user);
 
       expect(
-        usersService.updateUser(
-          user.id,
-          updatingFieldsAndRole,
-          anotherNonAdminUser,
-        ),
+        usersService.updateUser(user, updateUserDtoWithRole, user),
       ).rejects.toThrowError(ForbiddenException);
-
-      expect(spyRepositoryFindOne).toBeCalled();
     });
 
-    it('should throw forbidden exception on updating admin by admin', async () => {
-      const spyRepositoryFindOne = jest
-        .spyOn(usersRepositoryMock, 'findOne')
-        .mockResolvedValue(user);
-
-      expect(
-        usersService.updateUser(user.id, updatingFields, anotherAdminUser),
-      ).rejects.toThrowError(ForbiddenException);
-
-      expect(spyRepositoryFindOne).toBeCalled();
-    });
-
-    it('should throw conflictException on updating username to one already exists', async () => {
+    it('should throw ConflictException on updating username to one already exists', async () => {
       const updateUserDtoWithUsername = {
-        username: anotherNonAdminUser.username,
+        ...updateUserDto,
+        username: anotherUser.username,
       };
 
-      const spyRepositoryFindOne = jest
-        .spyOn(usersRepositoryMock, 'findOne')
-        .mockResolvedValue(user);
+      jest.spyOn(usersRepositoryMock, 'findOne').mockResolvedValue(user);
 
+      // this method gets called but jest cant spot it for unknown reason
       jest
         .spyOn(usersService, 'getUserByUsername')
-        .mockImplementation(() => Promise.resolve(anotherNonAdminUser));
+        .mockImplementation(() => Promise.resolve(anotherUser));
 
       expect(
-        usersService.updateUser(user.id, updateUserDtoWithUsername),
+        usersService.updateUser(user, updateUserDtoWithUsername, user),
       ).rejects.toThrowError(ConflictException);
-
-      expect(spyRepositoryFindOne).toHaveBeenCalled();
-      // for some reasons jest cant recognize this called, but it for sure gets called
-      // expect(spyGetUserByUsername).toHaveBeenCalled();
-      // Here test to be sure that mock works as intended
-      // expect(usersService.getUserByUsername('')).resolves.toBe(
-      //   anotherNonAdminUser,
-      // );
     });
   });
 
   describe('updateUserPassword method', () => {
-    const user = user1;
     const password = 'Abcde_12345';
     it('should update user password, hashed in advance', async () => {
+      const user = { ...user1 };
+
       const spyRepositorySave = jest
         .spyOn(usersRepositoryMock, 'save')
         .mockResolvedValue(user);
@@ -364,10 +327,9 @@ describe('UserService', () => {
 
   describe('deleteUser method', () => {
     const user = user1;
-    const admin = { ...user1, role: UserRoles.ADMIN };
+    const admin = admin1;
+    const anotherAdmin = admin2;
 
-    const anotherAdmin = { ...user2, role: UserRoles.ADMIN };
-    // const anotherNonAdminUser = { ...user2, role: UserRoles.USER };
     it('should delete own user with correct password', async () => {
       const password = 'verysecretpassword';
 
@@ -411,7 +373,7 @@ describe('UserService', () => {
       expect(spyGetUserById).toBeCalled();
     });
 
-    it('should throw ForbiddenException on deleting another administrator', async () => {
+    it('should throw ForbiddenException on deleting admin by another admin', async () => {
       const spyGetUserById = jest
         .spyOn(usersService, 'getUserById')
         .mockResolvedValue(anotherAdmin);

@@ -65,17 +65,26 @@ export class UsersService {
   }
 
   async updateUser(
-    id: number,
+    user: number | User,
     updateUserDto: UpdateUserDto,
-    questioner?: User,
+    questioner: User,
   ): Promise<User> {
-    const user = await this.usersRepository.findOne({ where: { id } });
+    if (typeof user === 'number') {
+      const getUser = await this.usersRepository.findOne({
+        where: { id: user },
+      });
 
-    if (!user) {
-      throw new NotFoundException('User you want to update does not exists');
+      if (!getUser) {
+        throw new NotFoundException('User you want to update does not exists');
+      }
+      user = getUser;
     }
 
-    if (questioner && id !== questioner?.id && user?.role === UserRoles.ADMIN) {
+    if (
+      questioner &&
+      user.id !== questioner?.id &&
+      user?.role === UserRoles.ADMIN
+    ) {
       throw new ForbiddenException(
         ' You are not allowed to update another Administrator',
       );
