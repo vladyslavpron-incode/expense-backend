@@ -69,7 +69,11 @@ export class UsersController {
     @AuthUser() user: User,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<User> {
-    const result = await this.usersService.updateUser(user.id, updateUserDto);
+    const result = await this.usersService.updateUser(
+      user.id,
+      updateUserDto,
+      user,
+    );
     return plainToInstance(User, result);
   }
 

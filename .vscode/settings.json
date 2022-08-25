@@ -10,6 +10,7 @@
     "roles",
     "categories",
     "users",
-    "transactions"
+    "transactions",
+    "tests"
   ]
 }

@@ -65,30 +65,40 @@ export class UsersService {
   }
 
   async updateUser(
-    id: number,
+    user: number | User,
     updateUserDto: UpdateUserDto,
-    questioner?: User,
+    questioner: User,
   ): Promise<User> {
-    const user = await this.usersRepository.findOne({ where: { id } });
+    if (typeof user === 'number') {
+      const getUser = await this.usersRepository.findOne({
+        where: { id: user },
+      });
 
-    if (!user) {
-      throw new NotFoundException('User you want to update does not exists');
+      if (!getUser) {
+        throw new NotFoundException('User you want to update does not exists');
+      }
+      user = getUser;
     }
 
-    if (questioner && id !== questioner?.id && user?.role === UserRoles.ADMIN) {
+    if (
+      questioner &&
+      user.id !== questioner?.id &&
+      user?.role === UserRoles.ADMIN
+    ) {
       throw new ForbiddenException(
         ' You are not allowed to update another Administrator',
       );
     }
 
     if (updateUserDto.role && user.role !== UserRoles.ADMIN) {
-      throw new BadRequestException(' You are not allowed to change your role');
+      throw new ForbiddenException(' You are not allowed to change your role');
     }
 
     if (updateUserDto.username && updateUserDto.username !== user.username) {
       const userWithSameUsername = await this.getUserByUsername(
         updateUserDto.username,
       );
+
       if (userWithSameUsername)
         throw new ConflictException(
           'Another user with same username already exists, please choose another username',
@@ -134,6 +144,12 @@ export class UsersService {
     // Admins on request can pass only userId which they want to delete, also they don't have to provide password
 
     if (typeof user === 'number') {
+      if (user === questioner.id) {
+        throw new BadRequestException(
+          "You can't use this endpoint to delete your account, please use endpoint to delete current account",
+        );
+      }
+
       const getUser = await this.getUserById(user);
       if (!getUser) {
         throw new NotFoundException('User you want to delete does not exists');
@@ -149,12 +165,6 @@ export class UsersService {
       if (!isPasswordCorrect) {
         throw new BadRequestException('Invalid password');
       }
-    }
-
-    if (user.id === questioner.id) {
-      throw new BadRequestException(
-        "You can't use this endpoint to delete your account, please use endpoint to delete current account",
-      );
     }
 
     if (user.id !== questioner.id && user.role === UserRoles.ADMIN) {

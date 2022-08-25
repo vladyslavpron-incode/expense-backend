@@ -218,11 +218,7 @@ export class CategoriesService {
       );
     }
 
-    const result = await this.categoriesRepository.delete({ id });
-
-    if (!result.affected) {
-      throw new BadRequestException('User you want to delete does not exists');
-    }
+    await this.categoriesRepository.delete({ id });
 
     return null;
   }
