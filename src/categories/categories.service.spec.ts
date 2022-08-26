@@ -467,12 +467,11 @@ describe('CategoriesService', () => {
         .spyOn(categoriesService, 'getUserCategoryById')
         .mockResolvedValue(category);
 
-      // jest cant spot call of this function for unknown reason
-      jest
+      const spyGetUserCategoryByLabel = jest
         .spyOn(categoriesService, 'getUserCategoryByLabel')
         .mockResolvedValue(anotherCategory);
 
-      expect(
+      await expect(() =>
         categoriesService.updateCategory(
           category.id,
           updateCategoryDtoWithSameLabel,
@@ -481,6 +480,7 @@ describe('CategoriesService', () => {
       ).rejects.toThrowError(ConflictException);
 
       expect(spyGetUserCategoryById).toBeCalled();
+      expect(spyGetUserCategoryByLabel).toBeCalled();
     });
   });
 

@@ -348,8 +348,7 @@ describe('TransactionsService', () => {
     });
 
     it('should throw NotFoundException if user does not have category with categoryLabel', async () => {
-      // jest cant spot this function call there for unknown reason
-      jest
+      const spyGetUserCategoryByLabel = jest
         .spyOn(categoriesServiceMock, 'getUserCategoryByLabel')
         .mockImplementation(() => Promise.resolve(null));
 
@@ -357,15 +356,16 @@ describe('TransactionsService', () => {
         .spyOn(transactionsService, 'getUserTransactionById')
         .mockImplementation(() => Promise.resolve(transaction));
 
-      expect(
+      await expect(() =>
         transactionsService.updateTransaction(
           transaction.id,
           updateTransactionDto,
           user,
         ),
       ).rejects.toThrowError(NotFoundException);
+
       expect(spyGetUserTransactionById).toBeCalled();
-      //   expect(spyGetUserCategoryByLabel).toBeCalled();
+      expect(spyGetUserCategoryByLabel).toBeCalled();
     });
 
     it('should throw ForbiddenException on updating admin transaction by another admin', async () => {

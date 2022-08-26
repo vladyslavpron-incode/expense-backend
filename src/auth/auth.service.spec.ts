@@ -146,17 +146,17 @@ describe('AuthService', () => {
       const spyGetUserByUsername = jest
         .spyOn(usersServiceMock, 'getUserByUsername')
         .mockResolvedValue(user);
-      // jest cant spot this called for unknown reason, but if id does not test will fail
-      jest
+
+      const spyBcryptCompare = jest
         .spyOn(bcrypt, 'compare')
         .mockImplementationOnce(() => Promise.resolve(false));
 
-      expect(authService.login(loginUserDto)).rejects.toThrowError(
+      await expect(() => authService.login(loginUserDto)).rejects.toThrowError(
         UnauthorizedException,
       );
 
       expect(spyGetUserByUsername).toBeCalled();
-      //   expect(spyBcryptCompare).toBeCalled();
+      expect(spyBcryptCompare).toBeCalled();
     });
 
     it('should throw UnauthorizedException when user with specified username does not exists', async () => {

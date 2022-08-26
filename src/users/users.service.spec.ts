@@ -281,14 +281,14 @@ describe('UserService', () => {
 
       jest.spyOn(usersRepositoryMock, 'findOne').mockResolvedValue(user);
 
-      // this method gets called but jest cant spot it for unknown reason
-      jest
+      const spyGetUserByUsername = jest
         .spyOn(usersService, 'getUserByUsername')
         .mockImplementation(() => Promise.resolve(anotherUser));
 
-      expect(
+      await expect(() =>
         usersService.updateUser(user, updateUserDtoWithUsername, user),
       ).rejects.toThrowError(ConflictException);
+      expect(spyGetUserByUsername).toBeCalled();
     });
   });
 
